@@ -1,0 +1,85 @@
+############################################
+# Visual Studio
+############################################
+.vs/
+.vsconfig
+*.sln
+*.suo
+*.VC.db
+*.VC.opendb
+*.opensdf
+*.sdf
+
+############################################
+# Build & Intermediate (UE Core)
+############################################
+Binaries/
+Intermediate/
+Saved/
+DerivedDataCache/
+AssetRegistryCache/
+
+############################################
+# Build Output
+############################################
+Build/
+
+############################################
+# Plugins (compiled output only)
+############################################
+Plugins/**/Binaries/
+Plugins/**/Intermediate/
+
+############################################
+# Object / Compiled files (C++ temp only)
+############################################
+*.slo
+*.lo
+*.o
+*.obj
+*.gch
+*.pch
+
+############################################
+# Executables (non-UE generated only)
+############################################
+*.exe
+*.out
+*.app
+*.ipa
+
+############################################
+# OS / Editor Cache
+############################################
+.DS_Store
+Thumbs.db
+
+############################################
+# Python / Tooling (optional but common in UE pipelines)
+############################################
+*.pyc
+__pycache__/
+
+############################################
+# Crash / Logs
+############################################
+CrashReports/
+*.log
+
+############################################
+# Source Art (only if used in pipeline)
+############################################
+SourceArt/**/*.png
+SourceArt/**/*.tga
+
+############################################
+# Map cooked data (UE generated)
+############################################
+*_BuiltData.uasset
+
+############################################
+# Unreal config-generated artifacts
+############################################
+Intermediate/*
+Saved/*
+DerivedDataCache/*

@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "BlasterPlayerController.generated.h"
 
+class ABlasterCharacter;
 struct FInputActionValue;
 class UInputAction;
 class UInputMappingContext;
@@ -19,12 +20,17 @@ class BLASTER_API ABlasterPlayerController : public APlayerController
 	
 public:
 	ABlasterPlayerController();
+	virtual void OnRep_Pawn() override;
 	
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
+	virtual void OnPossess(APawn* InPawn) override;
 	
 private:
+	UPROPERTY()
+	TObjectPtr<ABlasterCharacter> OwnerCharacter;
+	
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputMappingContext> BlasterMappingContext;
 	
@@ -37,7 +43,20 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> JumpAction;
 	
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> EquipAction;
+	
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> CrouchAction;
+	
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> AimAction;
+	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Jump(const FInputActionValue& Value);
+	void Equip(const FInputActionValue& Value);
+	void Crouch(const FInputActionValue& Value);
+	void AimBegin(const FInputActionValue& Value);
+	void AimEnd(const FInputActionValue& Value);
 };

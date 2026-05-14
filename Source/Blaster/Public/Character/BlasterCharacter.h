@@ -6,6 +6,9 @@
 #include "GameFramework/Character.h"
 #include "BlasterCharacter.generated.h"
 
+enum class ETurningInPlace : uint8;
+class UCombatComponent;
+class AWeapon;
 class UWidgetComponent;
 class UCameraComponent;
 class USpringArmComponent;
@@ -18,10 +21,18 @@ class BLASTER_API ABlasterCharacter : public ACharacter
 public:
 	ABlasterCharacter();
 	virtual void Tick(float DeltaTime) override;
-	
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
-
 	virtual void BeginPlay() override;
+	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void PostInitializeComponents() override;
+	
+	void EquipWeapon();
+	virtual void Jump() override;
+	void AimBegin();
+	void AimEnd();
+	
+protected:
+	void AimOffset(float DeltaTime);
 
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
@@ -33,7 +44,35 @@ private:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Widgets", meta = (AllowPrivateAccess = "true"))
 	UWidgetComponent* OverheadWidgetComponent;
 	
+	UPROPERTY(ReplicatedUsing=OnRep_OverlappingWeapon)
+	TObjectPtr<AWeapon> OverlappingWeapon;
+	
+	UPROPERTY(VisibleAnywhere, Category = "Combat")
+	TObjectPtr<UCombatComponent> CombatComponent;
+	
+	UFUNCTION()
+	void OnRep_OverlappingWeapon(AWeapon* LastWeapon);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerEquipWeapon();
+	
+	float AO_Yaw;
+	float Interp_AO_Yaw;
+	float AO_Pitch;
+	FRotator StartingAimRotation;
+	
+	ETurningInPlace TurningInPlace;
+	
+	void TurnInPlace(float DeltaTime);
+	
 public:
+	void SetOverlappingWeapon(AWeapon* Weapon);
+	bool IsWeaponEquipped();
+	bool IsAiming();
 	
+	FORCEINLINE float GetAO_Yaw() const { return AO_Yaw; }
+	FORCEINLINE float GetAO_Pitch() const { return AO_Pitch; }
+	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
 	
+	AWeapon* GetEquippedWeapon() const;
 };

@@ -15,6 +15,7 @@ ABlasterPlayerController::ABlasterPlayerController()
 void ABlasterPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
+	
 	check(BlasterMappingContext);
 	
 	UEnhancedInputLocalPlayerSubsystem* Subsystem = ULocalPlayer::GetSubsystem<UEnhancedInputLocalPlayerSubsystem>(GetLocalPlayer());
@@ -32,7 +33,25 @@ void ABlasterPlayerController::SetupInputComponent()
 	
 	BlasterInputComponent->BindAction(MoveAction, ETriggerEvent::Triggered, this, &ABlasterPlayerController::Move);
 	BlasterInputComponent->BindAction(LookAction, ETriggerEvent::Triggered, this, &ABlasterPlayerController::Look);
-	BlasterInputComponent->BindAction(JumpAction, ETriggerEvent::Triggered, this, &ABlasterPlayerController::Jump);
+	BlasterInputComponent->BindAction(JumpAction, ETriggerEvent::Started, this, &ABlasterPlayerController::Jump);
+	BlasterInputComponent->BindAction(EquipAction, ETriggerEvent::Started, this, &ABlasterPlayerController::Equip);
+	BlasterInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &ABlasterPlayerController::Crouch);
+	BlasterInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &ABlasterPlayerController::AimBegin);
+	BlasterInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &ABlasterPlayerController::AimEnd);
+}
+
+void ABlasterPlayerController::OnPossess(APawn* InPawn)
+{
+	Super::OnPossess(InPawn);
+	
+	OwnerCharacter = Cast<ABlasterCharacter>(InPawn);
+}
+
+void ABlasterPlayerController::OnRep_Pawn()
+{
+	Super::OnRep_Pawn();
+
+	OwnerCharacter = Cast<ABlasterCharacter>(GetPawn());
 }
 
 void ABlasterPlayerController::Move(const FInputActionValue& Value)
@@ -45,10 +64,10 @@ void ABlasterPlayerController::Move(const FInputActionValue& Value)
 	const FVector ForwardDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::X);
 	const FVector RightDirection = FRotationMatrix(YawRotation).GetUnitAxis(EAxis::Y);
 	
-	if (APawn* ControlledPawn = GetPawn())
+	if (OwnerCharacter)
 	{
-		ControlledPawn->AddMovementInput(ForwardDirection, MovementVector.Y);
-		ControlledPawn->AddMovementInput(RightDirection, MovementVector.X);
+		OwnerCharacter->AddMovementInput(ForwardDirection, MovementVector.Y);
+		OwnerCharacter->AddMovementInput(RightDirection, MovementVector.X);
 	}
 }
 
@@ -60,8 +79,47 @@ void ABlasterPlayerController::Look(const FInputActionValue& Value)
 }
 void ABlasterPlayerController::Jump(const FInputActionValue& Value)
 {
-	if (ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn()))
+	if (OwnerCharacter)
 	{
-		BlasterCharacter->Jump();
+		OwnerCharacter->Jump();
+	}
+}
+
+void ABlasterPlayerController::Equip(const FInputActionValue& Value)
+{
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->EquipWeapon();
+	}
+}
+
+void ABlasterPlayerController::Crouch(const FInputActionValue& Value)
+{
+	if (OwnerCharacter)
+	{
+		if (OwnerCharacter->bIsCrouched)
+		{
+			OwnerCharacter->UnCrouch();
+		}
+		else
+		{
+			OwnerCharacter->Crouch();
+		}
+	}
+}
+
+void ABlasterPlayerController::AimBegin(const FInputActionValue& Value)
+{
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->AimBegin();
+	}
+}
+
+void ABlasterPlayerController::AimEnd(const FInputActionValue& Value)
+{
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->AimEnd();
 	}
 }

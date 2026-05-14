@@ -35,7 +35,7 @@ void UOverheadWidget::ShowPlayerNetRole(const APawn* InPawn)
 			RoleString = "Unknown";
 			break;
 	}
-	const FString LocalRoleString = FString::Printf(TEXT("Local Role: %s"), *RoleString);
+	const FString LocalRoleString = FString::Printf(TEXT(""));
 	
 	SetDisplayText(LocalRoleString);
 }

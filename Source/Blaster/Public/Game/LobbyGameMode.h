@@ -15,5 +15,6 @@ class BLASTER_API ALobbyGameMode : public AGameMode
 	GENERATED_BODY()
 	
 public:
+	ALobbyGameMode();
 	virtual void PostLogin(APlayerController* NewPlayer) override;
 };

@@ -3,6 +3,7 @@
 
 #include "Character/BlasterCharacter.h"
 
+#include "Blaster/Blaster.h"
 #include "BlasterComponent/CombatComponent.h"
 #include "BlasterTypes/TurningInPlace.h"
 #include "Camera/CameraComponent.h"
@@ -38,7 +39,9 @@ ABlasterCharacter::ABlasterCharacter()
 	
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionObjectType(ECC_SkeletalMesh);
 	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
+	GetMesh()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Visibility, ECollisionResponse::ECR_Block);
 	
 	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 	
@@ -56,7 +59,20 @@ void ABlasterCharacter::Tick(float DeltaTime)
 {
 	Super::Tick(DeltaTime);
 
-	AimOffset(DeltaTime);
+	if (GetLocalRole() > ROLE_SimulatedProxy && IsLocallyControlled())
+	{
+		AimOffset(DeltaTime);
+	}
+	else
+	{
+		TimeSinceLastMoveReplicated += DeltaTime;
+		if (TimeSinceLastMoveReplicated > 0.25f)
+		{
+			 OnRep_ReplicatedMovement();
+		}
+		CalculateAO_Pitch();
+	}
+	HideCameraIfCharacterClose();
 }
 
 void ABlasterCharacter::SetupPlayerInputComponent(UInputComponent* PlayerInputComponent)
@@ -94,6 +110,25 @@ void ABlasterCharacter::PlayFireMontage(bool bAiming)
 	}
 }
 
+void ABlasterCharacter::PlayHitReactMontage()
+{
+	if (!CombatComponent || CombatComponent->EquippedWeapon == nullptr) return;
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && HitReactMontage)
+	{
+		AnimInstance->Montage_Play(HitReactMontage);
+		const FName SectionName("FromFront");
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
+void ABlasterCharacter::PossessedBy(AController* NewController)
+{
+	Super::PossessedBy(NewController);
+	
+}
+
 void ABlasterCharacter::EquipWeapon()
 {
 	if (CombatComponent)
@@ -129,7 +164,7 @@ void ABlasterCharacter::FireBegin()
 {
 	if (CombatComponent)
 	{
-		CombatComponent->Fire(true);
+		CombatComponent->FirePressed(true);
 	}
 }
 
@@ -137,20 +172,44 @@ void ABlasterCharacter::FireEnd()
 {
 	if (CombatComponent)
 	{
-		CombatComponent->Fire(false);
+		CombatComponent->FirePressed(false);
 	}
+}
+
+void ABlasterCharacter::CalculateAO_Pitch()
+{
+	AO_Pitch = GetBaseAimRotation().Pitch;
+	if (AO_Pitch > 90.f && !IsLocallyControlled())
+	{
+		// Replicated pitch is 0-360, but for non-local characters we want it to be -90 to 90
+		AO_Pitch -= 360.f;
+	}
+}
+
+void ABlasterCharacter::OnRep_ReplicatedMovement()
+{
+	Super::OnRep_ReplicatedMovement();
+	SimProxiesTurn();
+	TimeSinceLastMoveReplicated = 0.f;
+}
+
+float ABlasterCharacter::CalculateSpeed()
+{
+	FVector Velocity = GetVelocity();
+	Velocity.Z = 0.f;
+	const float Speed = Velocity.Size();
+	return Speed;
 }
 
 void ABlasterCharacter::AimOffset(float DeltaTime)
 {
 	if (CombatComponent && CombatComponent->EquippedWeapon == nullptr) return;
-	FVector Velocity = GetVelocity();
-	Velocity.Z = 0.f;
-	const float Speed = Velocity.Size();
+	const float Speed = CalculateSpeed();
 	const bool bIsInAir = GetCharacterMovement()->IsFalling();
 	
 	if (Speed == 0.f && !bIsInAir)
 	{
+		bRotateRootBone = true;
 		FRotator CurrentAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
 		FRotator DeltaAimRotation = UKismetMathLibrary::NormalizedDeltaRotator(CurrentAimRotation, StartingAimRotation);
 		AO_Yaw = DeltaAimRotation.Yaw;
@@ -165,18 +224,50 @@ void ABlasterCharacter::AimOffset(float DeltaTime)
 	}
 	if (Speed > 0.f || bIsInAir)
 	{
+		bRotateRootBone = false;
 		StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
 		AO_Yaw = 0.f;
 		bUseControllerRotationYaw = true;
 		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 	}
 	
-	AO_Pitch = GetBaseAimRotation().Pitch;
-	if (AO_Pitch > 90.f && !IsLocallyControlled())
+	CalculateAO_Pitch();
+}
+
+void ABlasterCharacter::SimProxiesTurn()
+{
+	if (CombatComponent == nullptr || CombatComponent->EquippedWeapon == nullptr) return;
+	
+	bRotateRootBone = false;
+	
+	float Speed = CalculateSpeed();
+	if (Speed > 0.f)
 	{
-		// Replicated pitch is 0-360, but for non-local characters we want it to be -90 to 90
-		AO_Pitch -= 360.f;
+		TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+		return;
 	}
+	
+	ProxyRotationLastFrame = ProxyRotation;
+	ProxyRotation = GetActorRotation();
+	ProxyYaw = UKismetMathLibrary::NormalizedDeltaRotator(ProxyRotation, ProxyRotationLastFrame).Yaw;
+	
+	if (FMath::Abs(ProxyYaw) > TurnThreshold)
+	{
+		if (ProxyYaw > TurnThreshold)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_Right;
+		}
+		else if (ProxyYaw < -TurnThreshold)
+		{
+			TurningInPlace = ETurningInPlace::ETIP_Left;
+		}
+		else
+		{
+			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
+		}
+		return;
+	}
+	TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 }
 
 void ABlasterCharacter::Jump()
@@ -189,6 +280,11 @@ void ABlasterCharacter::Jump()
 	{
 		Super::Jump();
 	}
+}
+
+void ABlasterCharacter::MulticastHit_Implementation()
+{
+	PlayHitReactMontage();
 }
 
 void ABlasterCharacter::TurnInPlace(float DeltaTime)
@@ -209,6 +305,28 @@ void ABlasterCharacter::TurnInPlace(float DeltaTime)
 		{
 			TurningInPlace = ETurningInPlace::ETIP_NotTurning;
 			StartingAimRotation = FRotator(0.f, GetBaseAimRotation().Yaw, 0.f);
+		}
+	}
+}
+
+void ABlasterCharacter::HideCameraIfCharacterClose()
+{
+	if (!IsLocallyControlled()) return;
+	
+	if ((FollowCamera->GetComponentLocation() - GetActorLocation()).Size() < CameraThreshold)
+	{
+		GetMesh()->SetVisibility(false);
+		if (CombatComponent && CombatComponent->EquippedWeapon && CombatComponent->EquippedWeapon->GetWeaponMesh())
+		{
+			CombatComponent->EquippedWeapon->GetWeaponMesh()->SetOwnerNoSee(true);
+		}
+	}
+	else
+	{
+		GetMesh()->SetVisibility(true);
+		if (CombatComponent && CombatComponent->EquippedWeapon && CombatComponent->EquippedWeapon->GetWeaponMesh())
+		{
+			CombatComponent->EquippedWeapon->GetWeaponMesh()->SetOwnerNoSee(false);
 		}
 	}
 }
@@ -257,6 +375,12 @@ bool ABlasterCharacter::IsWeaponEquipped()
 bool ABlasterCharacter::IsAiming()
 {
 	return CombatComponent && CombatComponent->bAiming;
+}
+
+FVector ABlasterCharacter::GetHitTargetLocation()
+{
+	if (CombatComponent == nullptr) return FVector();
+	return CombatComponent->HitTarget;
 }
 
 AWeapon* ABlasterCharacter::GetEquippedWeapon() const

@@ -33,6 +33,43 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Fire(const FVector& HitTarget);
 	
+	/*
+	 * Textures for crosshairs
+	 */
+	UPROPERTY(EditAnywhere, Category = "Crosshairs")
+	UTexture2D* CrosshairCenter;
+	
+	UPROPERTY(EditAnywhere, Category = "Crosshairs")
+	UTexture2D* CrosshairLeft;
+	
+	UPROPERTY(EditAnywhere, Category = "Crosshairs")
+	UTexture2D* CrosshairRight;
+	
+	UPROPERTY(EditAnywhere, Category = "Crosshairs")
+	UTexture2D* CrosshairTop;
+	
+	UPROPERTY(EditAnywhere, Category = "Crosshairs")
+	UTexture2D* CrosshairBottom;
+	
+	/*
+	 * Automatic Fire
+	 */
+		
+	UPROPERTY(EditAnywhere, Category="Combat")
+	float FireDelay = 0.15f;
+	
+	UPROPERTY(EditAnywhere, Category="Combat")
+	bool bAutomatic = true;
+	
+	/*
+	 * Zoom fov while aiming
+	 */
+	UPROPERTY(EditAnywhere)
+	float ZoomedFOV = 30.f;
+	
+	UPROPERTY(EditAnywhere)
+	float ZoomInterpSpeed = 20.f; 
+	
 protected:
 	virtual void BeginPlay() override;
 	
@@ -68,4 +105,6 @@ public:
 	void SetWeaponState(const EWeaponState State);
 	FORCEINLINE USphereComponent* GetAreaSphere() const { return AreaSphere; } 
 	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
+	FORCEINLINE float GetZoomedFOV() const { return ZoomedFOV; }
+	FORCEINLINE float GetZoomInterpSpeed() const { return ZoomInterpSpeed; }
 };

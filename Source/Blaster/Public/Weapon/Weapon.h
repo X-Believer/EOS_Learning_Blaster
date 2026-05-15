@@ -6,6 +6,7 @@
 #include "GameFramework/Actor.h"
 #include "Weapon.generated.h"
 
+class ACasing;
 class UWidgetComponent;
 
 UENUM(BlueprintType)
@@ -30,7 +31,8 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	void ShowPickupWidget(bool bShowWidget) const;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-
+	virtual void Fire(const FVector& HitTarget);
+	
 protected:
 	virtual void BeginPlay() override;
 	
@@ -52,6 +54,12 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	TObjectPtr<UWidgetComponent> PickupWidget;
+	
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	TObjectPtr<UAnimationAsset> FireAnimation;
+	
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	TSubclassOf<ACasing> CasingClass;
 	
 	UFUNCTION()
 	void OnRep_WeaponState();

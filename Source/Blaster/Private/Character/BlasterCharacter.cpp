@@ -81,6 +81,19 @@ void ABlasterCharacter::PostInitializeComponents()
 	}
 }
 
+void ABlasterCharacter::PlayFireMontage(bool bAiming)
+{
+	if (!CombatComponent || CombatComponent->EquippedWeapon == nullptr) return;
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && FireWeaponMontage)
+	{
+		AnimInstance->Montage_Play(FireWeaponMontage);
+		const FName SectionName = bAiming ? FName("RifleAim") : FName("RifleHip");
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
 void ABlasterCharacter::EquipWeapon()
 {
 	if (CombatComponent)
@@ -109,6 +122,22 @@ void ABlasterCharacter::AimEnd()
 	if (CombatComponent)
 	{
 		CombatComponent->SetAiming(false);
+	}
+}
+
+void ABlasterCharacter::FireBegin()
+{
+	if (CombatComponent)
+	{
+		CombatComponent->Fire(true);
+	}
+}
+
+void ABlasterCharacter::FireEnd()
+{
+	if (CombatComponent)
+	{
+		CombatComponent->Fire(false);
 	}
 }
 

@@ -52,6 +52,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> AimAction;
 	
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> FireAction;
+	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Jump(const FInputActionValue& Value);
@@ -59,4 +62,6 @@ private:
 	void Crouch(const FInputActionValue& Value);
 	void AimBegin(const FInputActionValue& Value);
 	void AimEnd(const FInputActionValue& Value);
+	void FireBegin(const FInputActionValue& Value);
+	void FireEnd(const FInputActionValue& Value);
 };

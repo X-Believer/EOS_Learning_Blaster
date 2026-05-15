@@ -6,12 +6,13 @@
 #include "Character/BlasterCharacter.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "GameFramework/CharacterMovementComponent.h"
+#include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
 #include "Weapon/Weapon.h"
 
 UCombatComponent::UCombatComponent()
 {
-	PrimaryComponentTick.bCanEverTick = false;
+	PrimaryComponentTick.bCanEverTick = true;
 	
 	BaseWalkSpeed = 600.f;
 	AimWalkSpeed = 450.f;
@@ -28,11 +29,10 @@ void UCombatComponent::BeginPlay()
 	}
 }
 
-
 void UCombatComponent::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction)
 {
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
-
+	
 }
 
 void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const
@@ -64,6 +64,61 @@ void UCombatComponent::OnRep_EquippedWeapon()
 	{
 		OwnerCharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
 		OwnerCharacter->bUseControllerRotationYaw = true;
+	}
+}
+
+void UCombatComponent::Fire(bool bFirePressed)
+{
+	bFireInputPressed = bFirePressed;
+	
+	if (bFireInputPressed)
+	{
+		FHitResult HitResult;
+		TraceUnderCrossHair(HitResult);
+		ServerFire(HitResult.ImpactPoint);
+	}
+}
+
+void UCombatComponent::TraceUnderCrossHair(FHitResult& HitResult)
+{
+	FVector2D ViewportSize;
+	if (GEngine && GEngine->GameViewport)
+	{
+		GEngine->GameViewport->GetViewportSize(ViewportSize);
+	}
+
+	const FVector2D CrosshairLocation(ViewportSize.X / 2.f, ViewportSize.Y / 2.f);
+	FVector CrosshairWorldPosition;
+	FVector CrosshairWorldDirection;
+	
+	if (UGameplayStatics::DeprojectScreenToWorld(UGameplayStatics::GetPlayerController(this, 0), 
+		CrosshairLocation, 
+		CrosshairWorldPosition, 
+		CrosshairWorldDirection))
+	{
+		FVector Start = CrosshairWorldPosition;
+		FVector End = Start + CrosshairWorldDirection * TRACE_LENGTH;
+		
+		GetWorld()->LineTraceSingleByChannel(
+			HitResult, 
+			Start, 
+			End, 
+			ECollisionChannel::ECC_Visibility);
+	}
+}
+
+void UCombatComponent::ServerFire_Implementation(const FVector_NetQuantize& TraceTarget)
+{
+	MulticastFire(TraceTarget);
+}
+
+void UCombatComponent::MulticastFire_Implementation(const FVector_NetQuantize& TraceTarget)
+{
+	if (EquippedWeapon == nullptr) return;
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->PlayFireMontage(bAiming);
+		EquippedWeapon->Fire(TraceTarget);
 	}
 }
 

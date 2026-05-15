@@ -38,6 +38,8 @@ void ABlasterPlayerController::SetupInputComponent()
 	BlasterInputComponent->BindAction(CrouchAction, ETriggerEvent::Started, this, &ABlasterPlayerController::Crouch);
 	BlasterInputComponent->BindAction(AimAction, ETriggerEvent::Started, this, &ABlasterPlayerController::AimBegin);
 	BlasterInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &ABlasterPlayerController::AimEnd);
+	BlasterInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ABlasterPlayerController::FireBegin);
+	BlasterInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ABlasterPlayerController::FireEnd);
 }
 
 void ABlasterPlayerController::OnPossess(APawn* InPawn)
@@ -121,5 +123,21 @@ void ABlasterPlayerController::AimEnd(const FInputActionValue& Value)
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->AimEnd();
+	}
+}
+
+void ABlasterPlayerController::FireBegin(const FInputActionValue& Value)
+{
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->FireBegin();
+	}
+}
+
+void ABlasterPlayerController::FireEnd(const FInputActionValue& Value)
+{
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->FireEnd();
 	}
 }

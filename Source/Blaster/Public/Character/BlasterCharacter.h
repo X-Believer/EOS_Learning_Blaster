@@ -3,10 +3,15 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "Components/TimelineComponent.h"
 #include "GameFramework/Character.h"
 #include "Interfaces/InteractWithCrosshairsInterface.h"
 #include "BlasterCharacter.generated.h"
 
+class ABlasterPlayerState;
+class USoundCue;
+class FOnTimelineFloat;
+class ABlasterPlayerController;
 enum class ETurningInPlace : uint8;
 class UCombatComponent;
 class AWeapon;
@@ -29,6 +34,8 @@ public:
 	virtual void PostInitializeComponents() override;
 	void PlayFireMontage(bool bAiming);
 	void PlayHitReactMontage();
+	void PlayElimMontage();
+	void UpdateHUDHealth();
 	virtual void PossessedBy(AController* NewController) override;
 	
 	void EquipWeapon();
@@ -38,18 +45,28 @@ public:
 	void FireBegin();
 	void FireEnd();
 	void CalculateAO_Pitch();
-
-	UFUNCTION(NetMulticast, Unreliable)
-	void MulticastHit();
 	
 	virtual void OnRep_ReplicatedMovement() override;
 	float CalculateSpeed();
+	
+	UFUNCTION()
+	void Elim();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastElim();
+	
+	virtual void Destroyed() override;
 
 protected:
 	void AimOffset(float DeltaTime);
-	
 	void SimProxiesTurn();
+	
+	UFUNCTION()
+	void ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatorController, AActor* DamageCauser);
 
+	// Poll for HUD element
+	UFUNCTION()
+	void PollInit();
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	USpringArmComponent* CameraBoom;
@@ -71,6 +88,9 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TObjectPtr<UAnimMontage> HitReactMontage;
+	
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	TObjectPtr<UAnimMontage> ElimMontage;
 	
 	UPROPERTY(EditAnywhere)
 	float CameraThreshold = 200;
@@ -97,6 +117,66 @@ private:
 	
 	void HideCameraIfCharacterClose();
 	
+	/*
+	 * Player health
+	 */
+	UPROPERTY(EditAnywhere, Category = "Player Stats")
+	float MaxHealth = 100.f;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_Health, VisibleAnywhere, Category = "Player Stats")
+	float Health = 100.f;
+	
+	UFUNCTION()
+	void OnRep_Health();
+
+	UPROPERTY()
+	TObjectPtr<ABlasterPlayerController> BlasterPlayerController;
+	
+	UPROPERTY()
+	TObjectPtr<ABlasterPlayerState> BlasterPlayerState;
+	
+	bool bEliminated = false;
+	
+	FTimerHandle ElimTimer;
+	
+	void ElimTimerFinished();
+	
+	UPROPERTY(EditDefaultsOnly)
+	float ElimDelay = 3.f;
+	
+	/*
+	 * Dissolve Effect
+	 */
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UTimelineComponent> DissolveTimeline;;
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UCurveFloat> DissolveCurve;
+	FOnTimelineFloat DissolveTrack;
+	
+	UPROPERTY(VisibleAnywhere, Category="Eliminated")
+	TObjectPtr<UMaterialInstanceDynamic> DynamicDissolveMaterialInstance;;
+	
+	UPROPERTY(EditAnywhere, Category="Eliminated")
+	TObjectPtr<UMaterialInstance> DissolveMaterialInstance;
+	
+	UFUNCTION()
+	void UpdateDissolveMaterial(float DissolveValue);
+	
+	UFUNCTION()
+	void StartDissolve();
+	
+	/*
+	 * Elim bot
+	 */
+	UPROPERTY(EditAnywhere, Category="Eliminated")
+	TObjectPtr<UParticleSystem> ElimBotEffect;
+	
+	UPROPERTY(VisibleAnywhere, Category="Eliminated")
+	TObjectPtr<UParticleSystemComponent> ElimBotComponent;
+	
+	UPROPERTY(EditAnywhere, Category="Eliminated")
+	TObjectPtr<USoundCue> ElimBotSound;
+
 public:
 	void SetOverlappingWeapon(AWeapon* Weapon);
 	bool IsWeaponEquipped();
@@ -107,6 +187,9 @@ public:
 	FORCEINLINE ETurningInPlace GetTurningInPlace() const { return TurningInPlace; }
 	FORCEINLINE UCameraComponent* GetFollowCamera() const { return FollowCamera; }
 	FORCEINLINE bool ShouldRotateRootBone() const { return bRotateRootBone; }
+	FORCEINLINE bool IsEliminated() const { return bEliminated; }
+	FORCEINLINE float GetHealth() const { return Health; }
+	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	FVector GetHitTargetLocation();
 	AWeapon* GetEquippedWeapon() const;
 };

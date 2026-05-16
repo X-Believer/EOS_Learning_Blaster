@@ -32,6 +32,7 @@ public:
 	void ShowPickupWidget(bool bShowWidget) const;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void Fire(const FVector& HitTarget);
+	void Dropped();
 	
 	/*
 	 * Textures for crosshairs

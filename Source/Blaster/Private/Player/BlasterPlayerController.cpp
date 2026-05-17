@@ -46,6 +46,7 @@ void ABlasterPlayerController::SetupInputComponent()
 	BlasterInputComponent->BindAction(AimAction, ETriggerEvent::Completed, this, &ABlasterPlayerController::AimEnd);
 	BlasterInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ABlasterPlayerController::FireBegin);
 	BlasterInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ABlasterPlayerController::FireEnd);
+	BlasterInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &ABlasterPlayerController::Reload);
 }
 
 void ABlasterPlayerController::OnPossess(APawn* InPawn)
@@ -98,6 +99,30 @@ void ABlasterPlayerController::SetHUDDefeatNum(int32 DefeatNum)
 	{
 		FString DefeatText = FString::Printf(TEXT("%d"), DefeatNum);
 		BlasterHUD->CharacterOverlay->DefeatNum->SetText(FText::FromString(DefeatText));
+	}
+}
+
+void ABlasterPlayerController::SetHUDWeaponAmmo(int32 Ammo)
+{
+	BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD.Get();
+	bool bHUDValid = BlasterHUD && BlasterHUD->CharacterOverlay && BlasterHUD->CharacterOverlay->AmmoNum;
+	
+	if (bHUDValid)
+	{
+		FString AmmoText = FString::Printf(TEXT("%d"), Ammo);
+		BlasterHUD->CharacterOverlay->AmmoNum->SetText(FText::FromString(AmmoText));
+	}
+}
+
+void ABlasterPlayerController::SetHUDCarriedAmmo(int32 CarriedAmmo)
+{
+	BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD.Get();
+	bool bHUDValid = BlasterHUD && BlasterHUD->CharacterOverlay && BlasterHUD->CharacterOverlay->CarriedAmmoNum;
+	
+	if (bHUDValid)
+	{
+		FString CarriedAmmoText = FString::Printf(TEXT("%d"), CarriedAmmo);
+		BlasterHUD->CharacterOverlay->CarriedAmmoNum->SetText(FText::FromString(CarriedAmmoText));
 	}
 }
 
@@ -184,5 +209,13 @@ void ABlasterPlayerController::FireEnd(const FInputActionValue& Value)
 	if (OwnerCharacter)
 	{
 		OwnerCharacter->FireEnd();
+	}
+}
+
+void ABlasterPlayerController::Reload(const FInputActionValue& Value)
+{
+	if (OwnerCharacter)
+	{
+		OwnerCharacter->Reload();
 	}
 }

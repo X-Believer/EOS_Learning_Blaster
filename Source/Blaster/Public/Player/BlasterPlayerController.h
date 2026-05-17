@@ -25,6 +25,8 @@ public:
 	void SetHUDHealth(float Health, float MaxHealth);
 	void SetHUDScore(float Score);
 	void SetHUDDefeatNum(int32 DefeatNum);
+	void SetHUDWeaponAmmo(int32 Ammo);
+	void SetHUDCarriedAmmo(int32 CarriedAmmo);
 	
 protected:
 	virtual void BeginPlay() override;
@@ -62,6 +64,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> FireAction;
 	
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> ReloadAction;
+	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Jump(const FInputActionValue& Value);
@@ -71,4 +76,5 @@ private:
 	void AimEnd(const FInputActionValue& Value);
 	void FireBegin(const FInputActionValue& Value);
 	void FireEnd(const FInputActionValue& Value);
+	void Reload(const FInputActionValue& Value);
 };

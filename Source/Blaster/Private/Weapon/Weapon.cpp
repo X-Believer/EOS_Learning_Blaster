@@ -8,6 +8,7 @@
 #include "Components/WidgetComponent.h"
 #include "Engine/SkeletalMeshSocket.h"
 #include "Net/UnrealNetwork.h"
+#include "Player/BlasterPlayerController.h"
 #include "Weapon/Casing.h"
 
 AWeapon::AWeapon()
@@ -58,6 +59,21 @@ void AWeapon::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeP
 	Super::GetLifetimeReplicatedProps(OutLifetimeProps);
 	
 	DOREPLIFETIME(AWeapon, WeaponState);
+	DOREPLIFETIME(AWeapon, Ammo);
+}
+
+void AWeapon::OnRep_Owner()
+{
+	Super::OnRep_Owner();
+	if (Owner == nullptr)
+	{
+		OwnerCharacter = nullptr;
+		OwnerController = nullptr;
+	}
+	else
+	{
+		SetHUDAmmo();
+	}
 }
 
 void AWeapon::Fire(const FVector& HitTarget)
@@ -82,6 +98,7 @@ void AWeapon::Fire(const FVector& HitTarget)
 			}
 		}
 	}
+	SpendRound();
 }
 
 void AWeapon::Dropped()
@@ -90,6 +107,14 @@ void AWeapon::Dropped()
 	FDetachmentTransformRules DetachmentRules(EDetachmentRule::KeepWorld, true);
 	WeaponMesh->DetachFromComponent(DetachmentRules);
 	SetOwner(nullptr);
+	OwnerCharacter = nullptr;
+	OwnerController = nullptr;
+}
+
+void AWeapon::AddAmmo(int32 AmmoAmount)
+{
+	Ammo = FMath::Clamp(Ammo + AmmoAmount, 0, MagCapacity);
+	SetHUDAmmo();
 }
 
 void AWeapon::OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor,
@@ -137,6 +162,31 @@ void AWeapon::OnRep_WeaponState()
 	}
 }
 
+void AWeapon::SetHUDAmmo()
+{
+	OwnerCharacter = OwnerCharacter == nullptr ? Cast<ABlasterCharacter>(GetOwner()) : OwnerCharacter.Get();
+	if (OwnerCharacter)
+	{
+		OwnerController = OwnerController == nullptr ? Cast<ABlasterPlayerController>(OwnerCharacter->GetController()) : OwnerController.Get();
+		if (OwnerController)
+		{
+			OwnerController->SetHUDWeaponAmmo(Ammo);
+		}
+	}
+}
+
+void AWeapon::OnRep_Ammo()
+{
+	SetHUDAmmo();
+}
+
+void AWeapon::SpendRound()
+{
+	Ammo = FMath::Clamp(Ammo - 1, 0, MagCapacity);
+	
+	SetHUDAmmo();
+}
+
 void AWeapon::SetWeaponState(const EWeaponState State)
 {
 	WeaponState = State;
@@ -161,6 +211,11 @@ void AWeapon::SetWeaponState(const EWeaponState State)
 		WeaponMesh->SetEnableGravity(true);
 		break;
 	}
+}
+
+bool AWeapon::AmmoRunOut() const
+{
+	return Ammo <= 0;
 }
 
 void AWeapon::ShowPickupWidget(const bool bShowWidget) const

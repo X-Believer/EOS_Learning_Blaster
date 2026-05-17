@@ -3,6 +3,7 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BlasterTypes/CombatState.h"
 #include "Components/TimelineComponent.h"
 #include "GameFramework/Character.h"
 #include "Interfaces/InteractWithCrosshairsInterface.h"
@@ -30,15 +31,18 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	virtual void SetupPlayerInputComponent(class UInputComponent* PlayerInputComponent) override;
 	virtual void BeginPlay() override;
+	virtual void PossessedBy(AController* NewController) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void PostInitializeComponents() override;
+	
 	void PlayFireMontage(bool bAiming);
 	void PlayHitReactMontage();
 	void PlayElimMontage();
+	void PlayReloadMontage();
 	void UpdateHUDHealth();
-	virtual void PossessedBy(AController* NewController) override;
 	
 	void EquipWeapon();
+	void Reload();
 	virtual void Jump() override;
 	void AimBegin();
 	void AimEnd();
@@ -80,9 +84,13 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_OverlappingWeapon)
 	TObjectPtr<AWeapon> OverlappingWeapon;
 	
-	UPROPERTY(VisibleAnywhere, Category = "Combat")
+	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UCombatComponent> CombatComponent;
 	
+	
+	/*
+	 * Anim montages
+	 */
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TObjectPtr<UAnimMontage> FireWeaponMontage;
 	
@@ -91,6 +99,9 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TObjectPtr<UAnimMontage> ElimMontage;
+	
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	TObjectPtr<UAnimMontage> ReloadMontage;
 	
 	UPROPERTY(EditAnywhere)
 	float CameraThreshold = 200;
@@ -192,4 +203,5 @@ public:
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	FVector GetHitTargetLocation();
 	AWeapon* GetEquippedWeapon() const;
+	ECombatState GetCombatState() const;
 };

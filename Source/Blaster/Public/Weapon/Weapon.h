@@ -3,9 +3,13 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "WeaponTypes.h"
 #include "GameFramework/Actor.h"
 #include "Weapon.generated.h"
 
+class USoundCue;
+class ABlasterPlayerController;
+class ABlasterCharacter;
 class ACasing;
 class UWidgetComponent;
 
@@ -31,8 +35,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	void ShowPickupWidget(bool bShowWidget) const;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
+	virtual void OnRep_Owner() override;
+	void SetHUDAmmo();
 	virtual void Fire(const FVector& HitTarget);
 	void Dropped();
+	void AddAmmo(int32 AmmoAmount);
 	
 	/*
 	 * Textures for crosshairs
@@ -71,6 +78,9 @@ public:
 	UPROPERTY(EditAnywhere)
 	float ZoomInterpSpeed = 20.f; 
 	
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	TObjectPtr<USoundCue> EquipSound;
+	
 protected:
 	virtual void BeginPlay() override;
 	
@@ -99,8 +109,28 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	TSubclassOf<ACasing> CasingClass;
 	
+	UPROPERTY()
+	TObjectPtr<ABlasterCharacter> OwnerCharacter;
+	
+	UPROPERTY()
+	TObjectPtr<ABlasterPlayerController> OwnerController;
+	
+	UPROPERTY(EditAnywhere)
+	EWeaponType WeaponType;
+	
+	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_Ammo, Category = "Weapon Properties")
+	int32 Ammo;
+	
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
+	int32 MagCapacity;
+	
 	UFUNCTION()
 	void OnRep_WeaponState();
+	
+	UFUNCTION()
+	void OnRep_Ammo();
+	
+	void SpendRound();
 
 public:	
 	void SetWeaponState(const EWeaponState State);
@@ -108,4 +138,8 @@ public:
 	FORCEINLINE USkeletalMeshComponent* GetWeaponMesh() const { return WeaponMesh; }
 	FORCEINLINE float GetZoomedFOV() const { return ZoomedFOV; }
 	FORCEINLINE float GetZoomInterpSpeed() const { return ZoomInterpSpeed; }
+	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
+	FORCEINLINE int32 GetAmmo() const { return Ammo; }
+	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
+	bool AmmoRunOut() const;
 };

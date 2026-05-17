@@ -147,6 +147,36 @@ void ABlasterCharacter::PlayElimMontage()
 	}
 }
 
+void ABlasterCharacter::PlayReloadMontage()
+{
+	if (!CombatComponent || CombatComponent->EquippedWeapon == nullptr) return;
+	
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ReloadMontage)
+	{
+		AnimInstance->Montage_Play(ReloadMontage);
+		FName SectionName;
+
+		switch (CombatComponent->EquippedWeapon->GetWeaponType())
+		{
+		case EWeaponType::EWT_AssaultRifle:
+			SectionName = (FName("Rifle"));
+			break;
+		case EWeaponType::EWT_Pistol:
+			SectionName = (FName("Pistol"));
+			break;
+		case EWeaponType::EWT_Shotgun:
+			SectionName = (FName("Shotgun"));	
+			break;
+		default:
+			SectionName = (FName("Rifle"));
+			break;
+		}
+		
+		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
 void ABlasterCharacter::UpdateHUDHealth()
 {
 	BlasterPlayerController = BlasterPlayerController == nullptr ? Cast<ABlasterPlayerController>(Controller) : BlasterPlayerController.Get();
@@ -176,6 +206,14 @@ void ABlasterCharacter::EquipWeapon()
 		{
 			ServerEquipWeapon();
 		}
+	}
+}
+
+void ABlasterCharacter::Reload()
+{
+	if (CombatComponent)
+	{
+		CombatComponent->Reload();
 	}
 }
 
@@ -252,6 +290,10 @@ void ABlasterCharacter::Elim()
 
 void ABlasterCharacter::MulticastElim_Implementation()
 {
+	if (BlasterPlayerController)
+	{
+		BlasterPlayerController->SetHUDWeaponAmmo(0);
+	}
 	bEliminated = true;
 	PlayElimMontage();
 	
@@ -548,5 +590,11 @@ AWeapon* ABlasterCharacter::GetEquippedWeapon() const
 {
 	if (CombatComponent == nullptr) return nullptr;
 	return CombatComponent->EquippedWeapon;
+}
+
+ECombatState ABlasterCharacter::GetCombatState() const
+{
+	if (CombatComponent == nullptr) return ECombatState::ECS_MAX;
+	return CombatComponent->CombatState;
 }
 

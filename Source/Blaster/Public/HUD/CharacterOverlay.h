@@ -28,4 +28,10 @@ public:
 	
 	UPROPERTY(meta = (BindWidget))
 	UTextBlock* DefeatNum;
+	
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* AmmoNum;
+	
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* CarriedAmmoNum;
 };

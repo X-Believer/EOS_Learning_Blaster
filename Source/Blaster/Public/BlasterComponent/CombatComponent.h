@@ -31,6 +31,7 @@ public:
 	void Reload();
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
+	void FirePressed(bool bFireInputPressed);
 	
 protected:
 	void SetAiming(bool InbAiming);
@@ -45,7 +46,6 @@ protected:
 	 * Fire
 	 */
 	void Fire();
-	void FirePressed(bool bFireInputPressed);
 	
 	UFUNCTION(Server, Reliable)
 	void ServerFire(const FVector_NetQuantize& TraceTarget);

@@ -6,6 +6,8 @@
 #include "GameFramework/PlayerController.h"
 #include "BlasterPlayerController.generated.h"
 
+class ABlasterGameMode;
+class UCharacterOverlay;
 class ABlasterHUD;
 class ABlasterCharacter;
 struct FInputActionValue;
@@ -21,21 +23,85 @@ class BLASTER_API ABlasterPlayerController : public APlayerController
 	
 public:
 	ABlasterPlayerController();
+	void CheckTimeSync(float DeltaTime);
+	virtual void Tick(float DeltaTime) override;
+	virtual void GetLifetimeReplicatedProps(TArray<class FLifetimeProperty>& OutLifetimeProps) const override;
 	virtual void OnRep_Pawn() override;
 	void SetHUDHealth(float Health, float MaxHealth);
 	void SetHUDScore(float Score);
 	void SetHUDDefeatNum(int32 DefeatNum);
 	void SetHUDWeaponAmmo(int32 Ammo);
 	void SetHUDCarriedAmmo(int32 CarriedAmmo);
+	void SetHUDMatchCountdown(float CountdownTime);
+	void SetHUDAnnouncementCountdown(float CountdownTime);
+	
+	// Synced with server world clock
+	virtual float GetServerTime();
+	// Sync with server clock as soon as possible
+	virtual void ReceivedPlayer() override;
+	
+	void OnMatchStateSet(FName State);
+	void HandleMatchHasStarted();
+	void HandleWaitingToStart();
+	void HandleCooldown();
 	
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
 	virtual void OnPossess(APawn* InPawn) override;
+	virtual void SetHUDTime();
+	void PollInit();
+	float ServerClientDelta = 0.f;
+	
+	UPROPERTY(EditAnywhere, Category = "Time")
+	float TimeSyncFrequency = 5.f;
+	
+	float TimeSyncRunningTime = 0.f;
+	
+	/*
+	 * Sync time between server and clients
+	 */
+	
+	// Request the current server time, passing in the client's time when request sent
+	UFUNCTION(Server, Reliable)
+	void ServerRequestServerTime(float TimeOfClientRequest);
+	
+	// Report the current server time to the client, along with the client's time when request was sent and the server's time when request was received
+	UFUNCTION(Client, Reliable)
+	void ClientReportServerTime(float TimeOfClientRequest, float TimeServerReceivedRequest);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerCheckMatchState();
+	
+	UFUNCTION(Client, Reliable)
+	void ClientJoinMidGame(FName StateOfMatch, float Warmup, float Match, float Cooldown, float StartingTime);
 	
 private:
 	UPROPERTY()
 	TObjectPtr<ABlasterCharacter> OwnerCharacter;
+	
+	UPROPERTY()
+	TObjectPtr<ABlasterGameMode> BlasterGameMode;
+	
+	UPROPERTY()
+	float MatchTime = 0.f;
+	float WarmupTime = 0.f;
+	float CooldownTime = 0.f;
+	float LevelStartingTime = 0.f;
+	uint32 CountdownInt = 0;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_MatchState)
+	FName MatchState;
+	
+	bool bInitializeCharacterOverlay = false;
+	
+	float HUDHealth;
+	float HUDMaxHealth;
+	float HUDScore;
+	float HUDDefeatNum;
+	
+	UPROPERTY()
+	TObjectPtr<UCharacterOverlay> CharacterOverlay;
 	
 	UPROPERTY(EditAnywhere, Category = "UI")
 	TObjectPtr<ABlasterHUD> BlasterHUD;
@@ -77,4 +143,7 @@ private:
 	void FireBegin(const FInputActionValue& Value);
 	void FireEnd(const FInputActionValue& Value);
 	void Reload(const FInputActionValue& Value);
+	
+	UFUNCTION()
+	void OnRep_MatchState();
 };

@@ -79,6 +79,7 @@ void ABlasterPlayerController::SetupInputComponent()
 	BlasterInputComponent->BindAction(FireAction, ETriggerEvent::Started, this, &ABlasterPlayerController::FireBegin);
 	BlasterInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ABlasterPlayerController::FireEnd);
 	BlasterInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &ABlasterPlayerController::Reload);
+	BlasterInputComponent->BindAction(ThrowGrenadeAction, ETriggerEvent::Started, this, &ABlasterPlayerController::ThrowGrenade);
 }
 
 void ABlasterPlayerController::OnPossess(APawn* InPawn)
@@ -151,6 +152,12 @@ void ABlasterPlayerController::PollInit()
 				SetHUDHealth(HUDHealth, HUDMaxHealth);
 				SetHUDScore(HUDScore);
 				SetHUDDefeatNum(HUDDefeatNum);
+				
+				ABlasterCharacter* BlasterCharacter = Cast<ABlasterCharacter>(GetPawn());
+				if (BlasterCharacter && BlasterCharacter->GetCombatComponent())
+				{
+					SetHUDGrenades(BlasterCharacter->GetCombatComponent()->GetCarriedGrenade());
+				}
 			}
 		}
 	}
@@ -319,6 +326,22 @@ void ABlasterPlayerController::SetHUDAnnouncementCountdown(float CountdownTime)
 	}
 }
 
+void ABlasterPlayerController::SetHUDGrenades(int32 Grenades)
+{
+	BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD.Get();
+	bool bHUDValid = BlasterHUD && BlasterHUD->CharacterOverlay && BlasterHUD->CharacterOverlay->GrenadesNum;
+	
+	if (bHUDValid)
+	{
+		FString GrenadesText = FString::Printf(TEXT("%d"), Grenades);
+		BlasterHUD->CharacterOverlay->GrenadesNum->SetText(FText::FromString(GrenadesText));
+	}
+	else
+	{
+		HUDGrenades = Grenades;
+	}
+}
+
 float ABlasterPlayerController::GetServerTime()
 {
 	if (HasAuthority())		
@@ -444,6 +467,14 @@ void ABlasterPlayerController::Reload(const FInputActionValue& Value)
 	{
 		if (OwnerCharacter->bDisableGameplay) return;
 		OwnerCharacter->Reload();
+	}
+}
+
+void ABlasterPlayerController::ThrowGrenade(const FInputActionValue& Value)
+{
+	if (OwnerCharacter->GetCombatComponent())
+	{
+		OwnerCharacter->ThrowGrenade();
 	}
 }
 

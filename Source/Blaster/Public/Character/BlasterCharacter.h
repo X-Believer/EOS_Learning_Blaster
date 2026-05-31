@@ -40,6 +40,8 @@ public:
 	void PlayHitReactMontage();
 	void PlayElimMontage();
 	void PlayReloadMontage();
+	void PlayThrowGrenadeMontage();
+	
 	void UpdateHUDHealth();
 	
 	void EquipWeapon();
@@ -50,6 +52,7 @@ public:
 	void FireBegin();
 	void FireEnd();
 	void CalculateAO_Pitch();
+	void ThrowGrenade();
 	
 	virtual void OnRep_ReplicatedMovement() override;
 	float CalculateSpeed();
@@ -61,6 +64,9 @@ public:
 	void MulticastElim();
 	
 	virtual void Destroyed() override;
+	
+	UFUNCTION(BlueprintImplementableEvent)
+	void ShowSniperScopeWidget(bool bShow);
 
 protected:
 	void AimOffset(float DeltaTime);
@@ -103,6 +109,9 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TObjectPtr<UAnimMontage> ReloadMontage;
+	
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	TObjectPtr<UAnimMontage> ThrowGrenadeMontage;
 	
 	UPROPERTY(EditAnywhere)
 	float CameraThreshold = 200;
@@ -188,6 +197,12 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category="Eliminated")
 	TObjectPtr<USoundCue> ElimBotSound;
+	
+	/*
+	 * Grenade
+	 */
+	UPROPERTY(VisibleAnywhere)
+	UStaticMeshComponent* AttachedGrenade;
 
 public:
 	void SetOverlappingWeapon(AWeapon* Weapon);
@@ -207,6 +222,8 @@ public:
 	FORCEINLINE float GetMaxHealth() const { return MaxHealth; }
 	FORCEINLINE UCombatComponent* GetCombatComponent() const { return CombatComponent; }
 	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }
+	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
+	FORCEINLINE UStaticMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }
 	FVector GetHitTargetLocation();
 	AWeapon* GetEquippedWeapon() const;
 	ECombatState GetCombatState() const;

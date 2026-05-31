@@ -6,6 +6,8 @@
 #include "GameFramework/Actor.h"
 #include "Projectile.generated.h"
 
+class UNiagaraComponent;
+class UNiagaraSystem;
 class USoundCue;
 class UProjectileMovementComponent;
 class UBoxComponent;
@@ -26,25 +28,51 @@ protected:
 	UFUNCTION()
 	virtual void OnHit(UPrimitiveComponent* HitComp, AActor* OtherActor, UPrimitiveComponent* OtherComp, FVector NormalImpulse, const FHitResult& Hit);
 	
-	UPROPERTY(EditAnywhere)
-	float Damage = 20.f;
+	UFUNCTION()
+	void SpawnTrailSystem();
+	void StartDestroyTimer();
+	void DestroyTimerFinished();
+	void ExplodeDamage();
 	
-private:
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UStaticMeshComponent> ProjectileMesh;
+	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UBoxComponent> CollisionBox;
 	
-	UPROPERTY(VisibleAnywhere)
-	TObjectPtr<UProjectileMovementComponent> ProjectileMovementComponent;
-	
 	UPROPERTY(EditAnywhere)
-	TObjectPtr<UParticleSystem> Tracer;
-	
-	UPROPERTY(EditAnywhere)
-	TObjectPtr<UParticleSystemComponent> TracerComponent;
+	float Damage = 20.f;
 	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UParticleSystem>	ImpactParticles;
 	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<USoundCue> ImpactSound;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UNiagaraSystem> TrailSystem;
+	
+	UPROPERTY()
+	TObjectPtr<UNiagaraComponent> TrailSystemComponent;
+	
+	UPROPERTY(VisibleAnywhere)
+	TObjectPtr<UProjectileMovementComponent> ProjectileMovementComponent;
+	
+	UPROPERTY(EditAnywhere)
+	float DamageInnerRadius = 200.f;
+	
+	UPROPERTY(EditAnywhere)
+	float DamageOuterRadius = 500.f;
+
+private:
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UParticleSystem> Tracer;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UParticleSystemComponent> TracerComponent;
+	
+	FTimerHandle DestroyTimer;
+	
+	UPROPERTY(EditAnywhere)
+	float DestroyDelay = 3.f;
 };

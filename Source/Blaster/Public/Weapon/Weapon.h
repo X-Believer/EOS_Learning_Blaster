@@ -81,6 +81,12 @@ public:
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	TObjectPtr<USoundCue> EquipSound;
 	
+	/*
+	 * Custome depth
+	 */
+	UFUNCTION()
+	void EnableCustomDepth(bool bEnable);
+	
 protected:
 	virtual void BeginPlay() override;
 	
@@ -89,6 +95,9 @@ protected:
 	
 	UFUNCTION()
 	virtual void OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex);
+	
+	UPROPERTY()
+	TObjectPtr<ABlasterPlayerController> OwnerController;
 	
 private:
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
@@ -111,9 +120,6 @@ private:
 	
 	UPROPERTY()
 	TObjectPtr<ABlasterCharacter> OwnerCharacter;
-	
-	UPROPERTY()
-	TObjectPtr<ABlasterPlayerController> OwnerController;
 	
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
@@ -142,4 +148,5 @@ public:
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
 	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
 	bool AmmoRunOut() const;
+	bool IsAmmoFull() const;
 };

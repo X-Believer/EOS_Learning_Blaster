@@ -56,6 +56,10 @@ ABlasterCharacter::ABlasterCharacter()
 	MinNetUpdateFrequency = 33.f;
 	
 	DissolveTimeline = CreateDefaultSubobject<UTimelineComponent>(TEXT("DissolveTimeline"));
+	
+	AttachedGrenade = CreateDefaultSubobject<UStaticMeshComponent>(TEXT("AttachedGrenade"));
+	AttachedGrenade->SetupAttachment(GetMesh(), FName("GrenadeSocket"));
+	AttachedGrenade->SetCollisionEnabled(ECollisionEnabled::NoCollision);
 }
 
 void ABlasterCharacter::BeginPlay()
@@ -65,6 +69,10 @@ void ABlasterCharacter::BeginPlay()
 	if (HasAuthority())
 	{
 		OnTakeAnyDamage.AddDynamic(this, &ABlasterCharacter::ReceiveDamage);
+	}
+	if (AttachedGrenade)
+	{
+		AttachedGrenade->SetVisibility(false);
 	}
 }
 
@@ -176,8 +184,20 @@ void ABlasterCharacter::PlayReloadMontage()
 		case EWeaponType::EWT_Pistol:
 			SectionName = (FName("Pistol"));
 			break;
-		case EWeaponType::EWT_Shotgun:
-			SectionName = (FName("Shotgun"));	
+		case EWeaponType::EWT_RocketLauncher:
+			SectionName = (FName("RocketLauncher"));
+			break;
+		case EWeaponType::EWT_ShotGun:
+			SectionName = (FName("ShotGun"));
+			break;
+		case EWeaponType::EWT_SMG:
+			SectionName = (FName("Pistol"));
+			break;
+		case EWeaponType::EWT_SniperRifle:
+			SectionName = (FName("SniperRifle"));
+			break;
+		case EWeaponType::EWT_GrenadeLauncher:
+			SectionName = (FName("GrenadeLauncher"));
 			break;
 		default:
 			SectionName = (FName("Rifle"));
@@ -185,6 +205,15 @@ void ABlasterCharacter::PlayReloadMontage()
 		}
 		
 		AnimInstance->Montage_JumpToSection(SectionName);
+	}
+}
+
+void ABlasterCharacter::PlayThrowGrenadeMontage()
+{
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
+	if (AnimInstance && ThrowGrenadeMontage)
+	{
+		AnimInstance->Montage_Play(ThrowGrenadeMontage);
 	}
 }
 
@@ -270,6 +299,14 @@ void ABlasterCharacter::CalculateAO_Pitch()
 	}
 }
 
+void ABlasterCharacter::ThrowGrenade()
+{
+	if (CombatComponent)
+	{
+		CombatComponent->ThrowGrenade();
+	}
+}
+
 void ABlasterCharacter::OnRep_ReplicatedMovement()
 {
 	Super::OnRep_ReplicatedMovement();
@@ -351,6 +388,10 @@ void ABlasterCharacter::MulticastElim_Implementation()
 			this, 
 			ElimBotSound, 
 			GetActorLocation());
+	}
+	if (IsLocallyControlled() && CombatComponent &&	CombatComponent->EquippedWeapon && CombatComponent->EquippedWeapon->GetWeaponType() == EWeaponType::EWT_SniperRifle && CombatComponent->bAiming)
+	{
+		ShowSniperScopeWidget(false);
 	}
 }
 
@@ -466,6 +507,7 @@ void ABlasterCharacter::SimProxiesTurn()
 
 void ABlasterCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatorController, AActor* DamageCauser)
 {
+	if (bEliminated) return;
 	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
 	UpdateHUDHealth();
 	PlayHitReactMontage();

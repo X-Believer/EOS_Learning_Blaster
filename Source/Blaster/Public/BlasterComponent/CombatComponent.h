@@ -9,8 +9,7 @@
 #include "Weapon/WeaponTypes.h"
 #include "CombatComponent.generated.h"
 
-#define TRACE_LENGTH 80000.f
-
+class AProjectile;
 class ABlasterHUD;
 class ABlasterPlayerController;
 class AWeapon;
@@ -26,12 +25,29 @@ public:
 	virtual void BeginPlay() override;
 	virtual void TickComponent(float DeltaTime, ELevelTick TickType, FActorComponentTickFunction* ThisTickFunction) override;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	
+
 	void EquipWeapon(AWeapon* InWeapon);
 	void Reload();
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
 	void FirePressed(bool bFireInputPressed);
+	
+	UFUNCTION(BlueprintCallable)
+	void ShotgunShellReload();
+	
+	UFUNCTION(BlueprintCallable)
+	void JumpToShotgunEnd();
+	
+	UFUNCTION(BlueprintCallable)
+	void ThrowGrenadeFinished();
+	
+	UFUNCTION(BlueprintCallable)
+	void LaunchGrenade();
+	
+	UFUNCTION(Server, Reliable)
+	void ServerLaunchGrenade(const FVector_NetQuantize& Target);
+	
+	void ShowAttachedGrenade(bool bShow);
 	
 protected:
 	void SetAiming(bool InbAiming);
@@ -41,7 +57,13 @@ protected:
 	
 	UFUNCTION()
 	void OnRep_EquippedWeapon();
-	
+	void DropEquippedWeapon();
+	void AttachActorToRightHand(AActor* ActorToAttach);
+	void AttachActorToLeftHand(AActor* ActorToAttach);
+	void UpdateCarriedAmmo();
+	void PlayEquipWeaponSound();
+	void ReloadEmptyWeapon();
+
 	/*
 	 * Fire
 	 */
@@ -62,6 +84,7 @@ protected:
 	
 	void HandleReload();
 	void UpdateAmmoValues();
+	void UpdateShotgunAmmoValues();
 
 	void TraceUnderCrossHair(FHitResult& HitResult);
 	
@@ -69,6 +92,17 @@ protected:
 	void SetHUDCrosshairs(float DeltaTime);
 	
 	int32 AmountToReload();
+	
+	/*
+	 * Grenade
+	 */
+	void ThrowGrenade();
+	
+	UFUNCTION(Server, Reliable)
+	void ServerThrowGrenade();
+	
+	UPROPERTY(EditAnywhere)
+	TSubclassOf<AProjectile> GrenadeClass;
 	
 private:
 	UPROPERTY()
@@ -139,21 +173,45 @@ private:
 	TMap<EWeaponType, int32> CarriedAmmoMap;
 	
 	UPROPERTY(EditAnywhere)
-	int32 StartingARAmmo = 30;
+	int32 StartingARAmmo = 45;
 	
 	UPROPERTY(EditAnywhere)
-	int32 StartingRocketAmmo = 2;
+	int32 StartingRocketAmmo = 4;
+	
+	UPROPERTY(EditAnywhere)
+	int32 StartingPistolAmmo = 15;
+	
+	UPROPERTY(EditAnywhere)
+	int32 StartingSMGAmmo = 20;
+	
+	UPROPERTY(EditAnywhere)
+	int32 StartingShotGunAmmo = 10;
+	
+	UPROPERTY(EditAnywhere)
+	int32 StartingSniperAmmo = 20;
+	
+	UPROPERTY(EditAnywhere)
+	int32 StartingGrenadeLauncherAmmo = 1;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_Grenades)
+	int32 CarriedGrenade = 3;
+	
+	UPROPERTY(EditAnywhere)
+	int32 MaxGrenade = 4;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_CombatState)
 	ECombatState CombatState = ECombatState::ECS_Unoccupied;
 	
 	UFUNCTION()
 	void OnRep_CombatState();
-	
+	UFUNCTION()
+	void OnRep_Grenades();
+	void UpdateHUDGrenades();
 	void InitializeCarriedAmmo();
-	
 	void StartFireTimer();
 	void FireTimerFinished();
-	
 	bool CanFire();
+	
+public:
+	FORCEINLINE int32 GetCarriedGrenade() const {return CarriedGrenade;}
 };

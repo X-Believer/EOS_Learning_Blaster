@@ -34,6 +34,7 @@ public:
 	void SetHUDCarriedAmmo(int32 CarriedAmmo);
 	void SetHUDMatchCountdown(float CountdownTime);
 	void SetHUDAnnouncementCountdown(float CountdownTime);
+	void SetHUDGrenades(int32 Grenades);
 	
 	// Synced with server world clock
 	virtual float GetServerTime();
@@ -99,6 +100,7 @@ private:
 	float HUDMaxHealth;
 	float HUDScore;
 	float HUDDefeatNum;
+	int32 HUDGrenades;
 	
 	UPROPERTY()
 	TObjectPtr<UCharacterOverlay> CharacterOverlay;
@@ -133,6 +135,9 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> ReloadAction;
 	
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> ThrowGrenadeAction;
+	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Jump(const FInputActionValue& Value);
@@ -143,6 +148,7 @@ private:
 	void FireBegin(const FInputActionValue& Value);
 	void FireEnd(const FInputActionValue& Value);
 	void Reload(const FInputActionValue& Value);
+	void ThrowGrenade(const FInputActionValue& Value);
 	
 	UFUNCTION()
 	void OnRep_MatchState();

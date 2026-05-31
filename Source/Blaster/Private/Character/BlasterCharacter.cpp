@@ -4,6 +4,7 @@
 #include "Character/BlasterCharacter.h"
 
 #include "Blaster/Blaster.h"
+#include "BlasterComponent/BuffComponent.h"
 #include "BlasterComponent/CombatComponent.h"
 #include "BlasterTypes/TurningInPlace.h"
 #include "Camera/CameraComponent.h"
@@ -43,6 +44,9 @@ ABlasterCharacter::ABlasterCharacter()
 	
 	CombatComponent = CreateDefaultSubobject<UCombatComponent>(TEXT("CombatComponent"));
 	CombatComponent->SetIsReplicated(true);
+	
+	BuffComponent = CreateDefaultSubobject<UBuffComponent>(TEXT("BuffComponent"));
+	BuffComponent->SetIsReplicated(true);
 	
 	GetCharacterMovement()->NavAgentProps.bCanCrouch = true;
 	GetCapsuleComponent()->SetCollisionResponseToChannel(ECollisionChannel::ECC_Camera, ECollisionResponse::ECR_Ignore);
@@ -119,6 +123,7 @@ void ABlasterCharacter::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Ou
 	
 	DOREPLIFETIME_CONDITION(ABlasterCharacter, OverlappingWeapon, COND_OwnerOnly);
 	DOREPLIFETIME(ABlasterCharacter, Health);
+	DOREPLIFETIME(ABlasterCharacter, Shield);
 	DOREPLIFETIME(ABlasterCharacter, bDisableGameplay);
 }
 
@@ -128,6 +133,13 @@ void ABlasterCharacter::PostInitializeComponents()
 	if (CombatComponent)
 	{
 		CombatComponent->OwnerCharacter = this;
+		SpawnDefaultWeapon();
+	}
+	if (BuffComponent)
+	{
+		BuffComponent->OwnerCharacter = this;
+		BuffComponent->SetInitialSpeed(GetCharacterMovement()->MaxWalkSpeed, GetCharacterMovement()->MaxWalkSpeedCrouched);
+		BuffComponent->SetInitialJumpVelocity(GetCharacterMovement()->JumpZVelocity);
 	}
 }
 
@@ -227,6 +239,42 @@ void ABlasterCharacter::UpdateHUDHealth()
 	}
 }
 
+void ABlasterCharacter::UpdateHUDShield()
+{
+	BlasterPlayerController = BlasterPlayerController == nullptr ? Cast<ABlasterPlayerController>(Controller) : BlasterPlayerController.Get();
+	
+	if (BlasterPlayerController)
+	{
+		BlasterPlayerController->SetHUDShield(Shield, MaxShield);
+	}
+}
+
+void ABlasterCharacter::UpdateHUDAmmo()
+{
+	BlasterPlayerController = BlasterPlayerController == nullptr ? Cast<ABlasterPlayerController>(Controller) : BlasterPlayerController.Get();
+	
+	if (BlasterPlayerController && CombatComponent && CombatComponent->EquippedWeapon)
+	{
+		BlasterPlayerController->SetHUDCarriedAmmo(CombatComponent->CarriedCurrentWeaponAmmo);
+		BlasterPlayerController->SetHUDWeaponAmmo(CombatComponent->EquippedWeapon->GetAmmo());
+	}
+}
+
+void ABlasterCharacter::SpawnDefaultWeapon()
+{
+	ABlasterGameMode* BlasterGameMode =	Cast<ABlasterGameMode>(UGameplayStatics::GetGameMode(this));
+	UWorld* World = GetWorld();
+	if (BlasterGameMode && World && !IsEliminated() && DefaultWeaponClass)
+	{
+		AWeapon* SpawnedWeapon = World->SpawnActor<AWeapon>(DefaultWeaponClass);
+		SpawnedWeapon->bDestroyWeapon = true;
+		if (CombatComponent)
+		{
+			CombatComponent->EquipWeapon(SpawnedWeapon);
+		}
+	}
+}
+
 void ABlasterCharacter::PossessedBy(AController* NewController)
 {
 	Super::PossessedBy(NewController);
@@ -238,13 +286,21 @@ void ABlasterCharacter::EquipWeapon()
 {
 	if (CombatComponent)
 	{
-		if (HasAuthority())
+		ServerEquipWeapon();
+	}
+}
+
+void ABlasterCharacter::ServerEquipWeapon_Implementation()
+{
+	if (CombatComponent)
+	{
+		if (OverlappingWeapon)
 		{
 			CombatComponent->EquipWeapon(OverlappingWeapon);
 		}
-		else
+		else if (CombatComponent->ShouldSwapWeapons())
 		{
-			ServerEquipWeapon();
+			CombatComponent->SwapWeapon();
 		}
 	}
 }
@@ -322,12 +378,37 @@ float ABlasterCharacter::CalculateSpeed()
 	return Speed;
 }
 
+void ABlasterCharacter::DropOrDestroyWeapon(AWeapon* InWeapon)
+{
+	if (InWeapon == nullptr) return;
+	if (InWeapon->bDestroyWeapon)
+	{
+		InWeapon->Destroy();
+	}
+	else
+	{
+		InWeapon->Dropped();
+	}
+}
+
+void ABlasterCharacter::DropOrDestroyWeapons()
+{
+	if (CombatComponent)
+	{
+		if (CombatComponent->EquippedWeapon)
+		{
+			DropOrDestroyWeapon(CombatComponent->EquippedWeapon);
+		}
+		if (CombatComponent->SecondaryWeapon)
+		{
+			DropOrDestroyWeapon(CombatComponent->SecondaryWeapon);
+		}
+	}
+}
+
 void ABlasterCharacter::Elim()
 {
-	if (CombatComponent && CombatComponent->EquippedWeapon)
-	{
-		CombatComponent->EquippedWeapon->Dropped();
-	}
+	DropOrDestroyWeapons();
 	MulticastElim();
 	GetWorldTimerManager().SetTimer(
 		ElimTimer, 
@@ -508,8 +589,25 @@ void ABlasterCharacter::SimProxiesTurn()
 void ABlasterCharacter::ReceiveDamage(AActor* DamagedActor, float Damage, const UDamageType* DamageType, AController* InstigatorController, AActor* DamageCauser)
 {
 	if (bEliminated) return;
-	Health = FMath::Clamp(Health - Damage, 0.f, MaxHealth);
+	
+	float DamageToHealth = Damage;
+	if (Shield > 0.f)
+	{
+		if (Shield >= Damage)
+		{
+			Shield = FMath::Clamp(Shield - Damage, 0.f, MaxShield);
+			DamageToHealth = 0.f;
+		}
+		else
+		{
+			DamageToHealth = FMath::Clamp(DamageToHealth - Shield, 0.f, Damage);
+			Shield = 0.f;
+		}
+	}
+	Health = FMath::Clamp(Health - DamageToHealth, 0.f, MaxHealth);
+	
 	UpdateHUDHealth();
+	UpdateHUDShield();
 	PlayHitReactMontage();
 
 	if (Health <= 0.f)
@@ -533,6 +631,8 @@ void ABlasterCharacter::PollInit()
 			BlasterPlayerState->AddToScore(0.f);
 			BlasterPlayerState->AddToDefeatNum(0);
 			UpdateHUDHealth();
+			UpdateHUDShield();
+			UpdateHUDAmmo();
 		}
 	}
 }
@@ -605,18 +705,22 @@ void ABlasterCharacter::OnRep_OverlappingWeapon(AWeapon* LastWeapon)
 	}
 }
 
-void ABlasterCharacter::ServerEquipWeapon_Implementation()
+void ABlasterCharacter::OnRep_Health(float LastHealth)
 {
-	if (CombatComponent)
+	UpdateHUDHealth();
+	if (Health < LastHealth)
 	{
-		CombatComponent->EquipWeapon(OverlappingWeapon);
+		PlayHitReactMontage();
 	}
 }
 
-void ABlasterCharacter::OnRep_Health()
+void ABlasterCharacter::OnRep_Shield(float LastShield)
 {
-	PlayHitReactMontage();
-	UpdateHUDHealth();
+	UpdateHUDShield();
+	if (Shield < LastShield)
+	{
+		PlayHitReactMontage();
+	}
 }
 
 void ABlasterCharacter::SetOverlappingWeapon(AWeapon* Weapon)

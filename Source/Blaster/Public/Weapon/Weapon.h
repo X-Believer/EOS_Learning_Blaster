@@ -18,6 +18,7 @@ enum class EWeaponState : uint8
 {
 	EWS_Initial UMETA(DisplayName = "Initial State"),
 	EWS_Equipped UMETA(DisplayName = "Equipped"),
+	EWS_EquippedSecondary UMETA(DisplayName = "Equipped Secondary"),
 	EWS_Dropped UMETA(DisplayName = "Dropped"),
 	
 	EWS_MAX UMETA(DisplayName = "DefaultMAX")
@@ -82,13 +83,19 @@ public:
 	TObjectPtr<USoundCue> EquipSound;
 	
 	/*
-	 * Custome depth
+	 * Custom depth
 	 */
 	UFUNCTION()
 	void EnableCustomDepth(bool bEnable);
 	
+	bool bDestroyWeapon = false;
+	
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnWeaponStateSet();
+	virtual void OnEquipped();
+	virtual void OnEquippedSecondary();
+	virtual void OnDropped();
 	
 	UFUNCTION()
 	virtual void OnSphereOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex, bool bFromSweep, const FHitResult& SweepResult);

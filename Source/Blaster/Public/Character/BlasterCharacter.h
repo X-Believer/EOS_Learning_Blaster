@@ -9,6 +9,8 @@
 #include "Interfaces/InteractWithCrosshairsInterface.h"
 #include "BlasterCharacter.generated.h"
 
+class ULagCompensationComponent;
+class UBoxComponent;
 class UBuffComponent;
 class ABlasterPlayerState;
 class USoundCue;
@@ -42,6 +44,7 @@ public:
 	void PlayElimMontage();
 	void PlayReloadMontage();
 	void PlayThrowGrenadeMontage();
+	void PlaySwapMontage();
 	
 	void UpdateHUDHealth();
 	void UpdateHUDShield();
@@ -72,6 +75,11 @@ public:
 	
 	UFUNCTION(BlueprintImplementableEvent)
 	void ShowSniperScopeWidget(bool bShow);
+		
+	UPROPERTY()
+	TMap<FName, UBoxComponent*> HitCollisionBoxes;
+	
+	bool bFinishSwaping = false;
 
 protected:
 	void AimOffset(float DeltaTime);
@@ -86,6 +94,64 @@ protected:
 	// Poll for HUD element
 	UFUNCTION()
 	void PollInit();
+	
+	/*
+	 * Hit boxes used for server rewind
+	 */
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> Head;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> Pelvis;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> Spine_02;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> Spine_03;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> UpperArm_L;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> UpperArm_R;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> LowerArm_L;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> LowerArm_R;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> Hand_L;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> Hand_R;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> Backpack;
+	
+	UPROPERTY(EditAnywhere)
+	TObjectPtr<UBoxComponent> Blanket;
+	
+	UPROPERTY(EditAnywhere)	
+	TObjectPtr<UBoxComponent> Thigh_L;
+	
+	UPROPERTY(EditAnywhere)	
+	TObjectPtr<UBoxComponent> Thigh_R;
+	
+	UPROPERTY(EditAnywhere)	
+	TObjectPtr<UBoxComponent> Calf_L;
+	
+	UPROPERTY(EditAnywhere)	
+	TObjectPtr<UBoxComponent> Calf_R;
+	
+	UPROPERTY(EditAnywhere)	
+	TObjectPtr<UBoxComponent> Foot_L;
+	
+	UPROPERTY(EditAnywhere)	
+	TObjectPtr<UBoxComponent> Foot_R;
+	
 private:
 	UPROPERTY(VisibleAnywhere, Category = Camera)
 	USpringArmComponent* CameraBoom;
@@ -105,6 +171,8 @@ private:
 	UPROPERTY(VisibleAnywhere, BlueprintReadOnly, Category = "Combat", meta = (AllowPrivateAccess = "true"))
 	TObjectPtr<UBuffComponent> BuffComponent;
 	
+	UPROPERTY(VisibleAnywhere, Category = "Combat")
+	TObjectPtr<ULagCompensationComponent> LagCompensation;
 	
 	/*
 	 * Anim montages
@@ -123,6 +191,9 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category = "Combat")
 	TObjectPtr<UAnimMontage> ThrowGrenadeMontage;
+	
+	UPROPERTY(EditAnywhere, Category = "Combat")
+	TObjectPtr<UAnimMontage> SwapMontage;
 	
 	UPROPERTY(EditAnywhere)
 	float CameraThreshold = 200;
@@ -255,10 +326,12 @@ public:
 	FORCEINLINE float GetMaxShield() const { return MaxShield; }
 	FORCEINLINE UCombatComponent* GetCombatComponent() const { return CombatComponent; }
 	FORCEINLINE UBuffComponent* GetBuffComponent() const { return BuffComponent; }
+	FORCEINLINE ULagCompensationComponent* GetLagCompensation() const { return LagCompensation; }
 	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }
 	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
 	FORCEINLINE UStaticMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }
 	FVector GetHitTargetLocation();
 	AWeapon* GetEquippedWeapon() const;
 	ECombatState GetCombatState() const;
+	bool IsLocallyReloading();
 };

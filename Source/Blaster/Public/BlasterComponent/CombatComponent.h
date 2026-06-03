@@ -34,6 +34,13 @@ public:
 	
 	UFUNCTION(BlueprintCallable)
 	void FinishReloading();
+	
+	UFUNCTION(BlueprintCallable)
+	void FinishSwap();
+	
+	UFUNCTION(BlueprintCallable)
+	void FinishSwapAttachWeapon();
+	
 	void FirePressed(bool bFireInputPressed);
 	
 	UFUNCTION(BlueprintCallable)
@@ -54,6 +61,7 @@ public:
 	void ShowAttachedGrenade(bool bShow);
 	
 	void PickupAmmo(EWeaponType WeaponType, int32 AmmoAmount);
+	bool bLocallyReload = false;
 	
 protected:
 	void SetAiming(bool InbAiming);
@@ -78,12 +86,24 @@ protected:
 	 * Fire
 	 */
 	void Fire();
+	void FireProjectileWeapon();
+	void FireHitScanWeapon();
+	void FireShotgun();
+	
+	void LocalFire(const FVector_NetQuantize& TraceHitTarget);
+	void ShotgunLocalFire(const TArray<FVector_NetQuantize>& TraceHitTargets);
 	
 	UFUNCTION(Server, Reliable)
 	void ServerFire(const FVector_NetQuantize& TraceTarget);
 	
 	UFUNCTION(NetMulticast, Reliable)
 	void MulticastFire(const FVector_NetQuantize& TraceTarget);
+	
+	UFUNCTION(Server, Reliable)
+	void ServerShotgunFire(const TArray<FVector_NetQuantize>& TraceHitTargets);
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastShotgunFire(const TArray<FVector_NetQuantize>& TraceHitTargets);
 	
 	/*
 	 * Reload
@@ -130,8 +150,14 @@ private:
 	UPROPERTY(ReplicatedUsing=OnRep_SecondaryWeapon)
 	TObjectPtr<AWeapon> SecondaryWeapon;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY(ReplicatedUsing=OnRep_Aiming)
 	bool bAiming;
+	
+	UPROPERTY()
+	bool bAimButtonPressed = false;
+	
+	UFUNCTION()
+	void OnRep_Aiming();
 	
 	UPROPERTY(EditAnywhere, Category="Combat")
 	float BaseWalkSpeed;

@@ -21,6 +21,18 @@ public:
 	AProjectile();
 	virtual void Tick(float DeltaTime) override;
 	virtual void Destroyed() override;
+	
+	/*
+	 * Server side rewind
+	 */
+	bool bUseServerSideRewind = false;
+	FVector_NetQuantize TraceStart;
+	FVector_NetQuantize100 InitialVelocity;
+	
+	UPROPERTY(EditAnywhere)
+	float InitialSpeed = 15000.f;
+	
+	float Damage = 20.f;
 
 protected:
 	virtual void BeginPlay() override;
@@ -39,9 +51,6 @@ protected:
 	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UBoxComponent> CollisionBox;
-	
-	UPROPERTY(EditAnywhere)
-	float Damage = 20.f;
 	
 	UPROPERTY(EditAnywhere)
 	TObjectPtr<UParticleSystem>	ImpactParticles;

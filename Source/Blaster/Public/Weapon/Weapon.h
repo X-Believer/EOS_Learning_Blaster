@@ -24,6 +24,16 @@ enum class EWeaponState : uint8
 	EWS_MAX UMETA(DisplayName = "DefaultMAX")
 };
 
+UENUM(BlueprintType)
+enum class EFireType : uint8
+{
+	EFT_HitScan UMETA(DisplayName = "HitScan Weapon"),
+	EFT_Projectile UMETA(DisplayName = "Projectile Weapon"),
+	EFT_Shotgun UMETA(DisplayName = "Shotgun Weapon"),
+	
+	EFT_MAX UMETA(DisplayName = "DefaultMAX")
+};
+
 class USphereComponent;
 
 UCLASS()
@@ -36,11 +46,11 @@ public:
 	virtual void Tick(float DeltaTime) override;
 	void ShowPickupWidget(bool bShowWidget) const;
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
-	virtual void OnRep_Owner() override;
 	void SetHUDAmmo();
 	virtual void Fire(const FVector& HitTarget);
 	void Dropped();
 	void AddAmmo(int32 AmmoAmount);
+	FVector TraceEndWithScatter(const FVector& HitTarget) const;
 	
 	/*
 	 * Textures for crosshairs
@@ -90,8 +100,16 @@ public:
 	
 	bool bDestroyWeapon = false;
 	
+	UPROPERTY(EditAnywhere)
+	EFireType FireType;
+		
+	UPROPERTY(EditAnywhere, Category="Weapon Scatter")
+	bool bUseScatter = false;
+	
+	
 protected:
 	virtual void BeginPlay() override;
+	virtual void OnRep_Owner() override;
 	virtual void OnWeaponStateSet();
 	virtual void OnEquipped();
 	virtual void OnEquippedSecondary();
@@ -103,8 +121,29 @@ protected:
 	UFUNCTION()
 	virtual void OnSphereEndOverlap(UPrimitiveComponent* OverlappedComponent, AActor* OtherActor, UPrimitiveComponent* OtherComponent, int32 OtherBodyIndex);
 	
+	UFUNCTION()
+	void OnPingTooHigh(bool bPingTooHigh);
+		
+	UPROPERTY()
+	TObjectPtr<ABlasterCharacter> OwnerCharacter;
+	
 	UPROPERTY()
 	TObjectPtr<ABlasterPlayerController> OwnerController;
+		
+	/*
+	 * Trace end with scatter
+	 */
+	UPROPERTY(EditAnywhere, Category="Weapon Scatter")
+	float DistanceToSphere = 800.f;
+	
+	UPROPERTY(EditAnywhere, Category="Weapon Scatter")
+	float SphereRadius = 75.f;
+	
+	UPROPERTY(EditAnywhere)
+	float Damage = 20.f;
+
+	UPROPERTY(Replicated, EditAnywhere, Category="Lag Compensation")
+	bool bUseServerSideRewind = false;
 	
 private:
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
@@ -125,23 +164,26 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	TSubclassOf<ACasing> CasingClass;
 	
-	UPROPERTY()
-	TObjectPtr<ABlasterCharacter> OwnerCharacter;
-	
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
 	
-	UPROPERTY(EditAnywhere, ReplicatedUsing=OnRep_Ammo, Category = "Weapon Properties")
+	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	int32 Ammo;
+	
+	UFUNCTION(Client, Reliable)
+	void ClientUpdateAmmo(int32 ServerAmmo);
+	
+	UFUNCTION(Client, Reliable)
+	void ClientAddAmmo(int32 InAmmo);
 	
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	int32 MagCapacity;
 	
-	UFUNCTION()
-	void OnRep_WeaponState();
+	// The unprocessed server requests for ammo
+	int32 Sequence = 0;
 	
 	UFUNCTION()
-	void OnRep_Ammo();
+	void OnRep_WeaponState();
 	
 	void SpendRound();
 
@@ -154,6 +196,7 @@ public:
 	FORCEINLINE EWeaponType GetWeaponType() const { return WeaponType; }
 	FORCEINLINE int32 GetAmmo() const { return Ammo; }
 	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
+	FORCEINLINE float GetDamage() const { return Damage; }
 	bool AmmoRunOut() const;
 	bool IsAmmoFull() const;
 };

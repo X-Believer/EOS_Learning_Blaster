@@ -837,7 +837,7 @@ FString ABlasterPlayerController::GetTeamsInfoText(const ABlasterGameState* Blas
 	FString InfoText;
 	int32 ReaTeamScore = BlasterGameState->RedTeamScore;
 	int32 BlueTeamScore = BlasterGameState->BlueTeamScore;
-	if (ReaTeamScore == 0 || BlueTeamScore == 0)
+	if (ReaTeamScore == 0 && BlueTeamScore == 0)
 	{
 		InfoText = Announcement::ThereIsNoWinner;
 	}

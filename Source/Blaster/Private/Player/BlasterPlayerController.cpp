@@ -15,6 +15,7 @@
 #include "HUD/Announcement.h"
 #include "HUD/BlasterHUD.h"
 #include "HUD/CharacterOverlay.h"
+#include "HUD/ReturnToMainMenu.h"
 #include "Input/BlasterInputComponent.h"
 #include "Kismet/GameplayStatics.h"
 #include "Net/UnrealNetwork.h"
@@ -51,6 +52,39 @@ void ABlasterPlayerController::GetLifetimeReplicatedProps(TArray<class FLifetime
 	DOREPLIFETIME(ABlasterPlayerController, MatchState);
 }
 
+void ABlasterPlayerController::BroadCastElim(APlayerState* Attacker, APlayerState* Victim)
+{
+	ClientElimAnnouncement(Attacker, Victim);
+}
+
+void ABlasterPlayerController::ClientElimAnnouncement_Implementation(APlayerState* Attacker, APlayerState* Victim)
+{
+	APlayerState* Self = GetPlayerState<APlayerState>();
+	if (Attacker && Victim && Self)
+	{
+		BlasterHUD = BlasterHUD == nullptr ? Cast<ABlasterHUD>(GetHUD()) : BlasterHUD.Get();
+		if (BlasterHUD)
+		{
+			if (Attacker == Self && Victim != Self)
+			{
+				BlasterHUD->AddElimAnnouncement("You", Victim->GetPlayerName());
+			}
+			else if (Victim == Self && Attacker != Self)
+			{
+				BlasterHUD->AddElimAnnouncement(Attacker->GetPlayerName(), "You");
+			}
+			else if (Attacker == Self && Victim == Self )
+			{
+				BlasterHUD->AddElimAnnouncement("You", "Yourself");
+			}
+			else
+			{
+				BlasterHUD->AddElimAnnouncement(Attacker->GetPlayerName(), Victim->GetPlayerName());
+			}
+		}
+	}
+}
+
 void ABlasterPlayerController::BeginPlay()
 {
 	Super::BeginPlay();
@@ -83,6 +117,7 @@ void ABlasterPlayerController::SetupInputComponent()
 	BlasterInputComponent->BindAction(FireAction, ETriggerEvent::Completed, this, &ABlasterPlayerController::FireEnd);
 	BlasterInputComponent->BindAction(ReloadAction, ETriggerEvent::Started, this, &ABlasterPlayerController::Reload);
 	BlasterInputComponent->BindAction(ThrowGrenadeAction, ETriggerEvent::Started, this, &ABlasterPlayerController::ThrowGrenade);
+	BlasterInputComponent->BindAction(QuitAction, ETriggerEvent::Started, this, &ABlasterPlayerController::ShowReturnToMainMenu);
 }
 
 void ABlasterPlayerController::OnPossess(APawn* InPawn)
@@ -583,6 +618,27 @@ void ABlasterPlayerController::ThrowGrenade(const FInputActionValue& Value)
 	if (OwnerCharacter->GetCombatComponent())
 	{
 		OwnerCharacter->ThrowGrenade();
+	}
+}
+
+void ABlasterPlayerController::ShowReturnToMainMenu(const FInputActionValue& Value)
+{
+	if (ReturnToMainMenuWidgetClass == nullptr) return;
+	if (ReturnToMainMenuWidget == nullptr)
+	{
+		ReturnToMainMenuWidget = CreateWidget<UReturnToMainMenu>(this, ReturnToMainMenuWidgetClass);
+	}
+	if (ReturnToMainMenuWidget)
+	{
+		bReturnToMainMenuOpen = !bReturnToMainMenuOpen;
+		if (bReturnToMainMenuOpen)
+		{
+			ReturnToMainMenuWidget->MenuSetup();
+		}
+		else
+		{
+			ReturnToMainMenuWidget->MenuTeardown();
+		}
 	}
 }
 

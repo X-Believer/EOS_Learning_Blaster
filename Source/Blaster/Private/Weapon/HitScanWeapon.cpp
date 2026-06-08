@@ -34,9 +34,11 @@ void AHitScanWeapon::Fire(const FVector& HitTarget)
 			bool bCauseAuthDamage = !bUseServerSideRewind || OwnerPawn->IsLocallyControlled();
 			if (HasAuthority() && bCauseAuthDamage)
 			{
+				const float DamageToCause = FireHit.BoneName.ToString() == FString("head") ? HeadShotDamage : Damage;
+				
 				UGameplayStatics::ApplyDamage(
 				BlasterCharacter, 
-				Damage, 
+				DamageToCause, 
 				InstigatorController, 
 				this, 
 				UDamageType::StaticClass());
@@ -102,18 +104,22 @@ void AHitScanWeapon::WeaponTraceHit(const FVector& TraceStart, const FVector& Hi
 		if (OutHit.bBlockingHit)
 		{
 			BeamEnd = OutHit.ImpactPoint;
-			if (BeamParticle)
+		}
+		else
+		{
+			OutHit.ImpactPoint = End;
+		}
+		if (BeamParticle)
+		{
+			UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
+				World,
+				BeamParticle,
+				TraceStart,
+				FRotator::ZeroRotator,
+				true);
+			if (Beam)
 			{
-				UParticleSystemComponent* Beam = UGameplayStatics::SpawnEmitterAtLocation(
-					World,
-					BeamParticle,
-					TraceStart,
-					FRotator::ZeroRotator,
-					true);
-				if (Beam)
-				{
-					Beam->SetVectorParameter(FName("Target"), BeamEnd);
-				}
+				Beam->SetVectorParameter(FName("Target"), BeamEnd);
 			}
 		}
 	}

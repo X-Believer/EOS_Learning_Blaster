@@ -6,6 +6,8 @@
 #include "GameFramework/GameMode.h"
 #include "BlasterGameMode.generated.h"
 
+class ABlasterPlayerState;
+
 namespace MatchState
 {
 	extern BLASTER_API const FName Cooldown;
@@ -26,6 +28,9 @@ public:
 	virtual void Tick( float DeltaTime ) override;
 	virtual void PlayerEliminated(ABlasterCharacter	*EliminatedCharacter, ABlasterPlayerController *VictimController, ABlasterPlayerController *KillerController);
 	virtual void RequestRespawn(ACharacter* EliminatedCharacter, AController* EliminatedController);
+	
+	UFUNCTION()
+	void PlayerLeftGame(ABlasterPlayerState* PlayerLeaving);
 	
 	UPROPERTY(EditDefaultsOnly)
 	float WarmupTime = 10.f;

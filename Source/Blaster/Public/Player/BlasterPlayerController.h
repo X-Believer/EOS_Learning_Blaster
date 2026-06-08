@@ -6,6 +6,7 @@
 #include "GameFramework/PlayerController.h"
 #include "BlasterPlayerController.generated.h"
 
+class UReturnToMainMenu;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHighPingDelegate, bool, bHighPing);
 
 class ABlasterGameMode;
@@ -53,6 +54,8 @@ public:
 	
 	FHighPingDelegate HighPingDelegate;
 	
+	void BroadCastElim(APlayerState* Attacker, APlayerState* Victim);
+	
 protected:
 	virtual void BeginPlay() override;
 	virtual void SetupInputComponent() override;
@@ -88,6 +91,8 @@ protected:
 	void StopHighPingWarning();
 	void CheckPing(float DeltaTime);
 	
+	UFUNCTION(Client, Reliable)
+	void ClientElimAnnouncement(APlayerState* Attacker, APlayerState* Victim);
 private:
 	UPROPERTY()
 	TObjectPtr<ABlasterCharacter> OwnerCharacter;
@@ -174,6 +179,20 @@ private:
 	UPROPERTY(EditAnywhere, Category = "Input")
 	TObjectPtr<UInputAction> ThrowGrenadeAction;
 	
+	UPROPERTY(EditAnywhere, Category = "Input")
+	TObjectPtr<UInputAction> QuitAction;
+	
+	/*
+	 * Return to main menu
+	 */
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TSubclassOf<UUserWidget> ReturnToMainMenuWidgetClass;
+	
+	UPROPERTY(EditAnywhere, Category = "UI")
+	TObjectPtr<UReturnToMainMenu> ReturnToMainMenuWidget;
+	
+	bool bReturnToMainMenuOpen = false;
+	
 	void Move(const FInputActionValue& Value);
 	void Look(const FInputActionValue& Value);
 	void Jump(const FInputActionValue& Value);
@@ -185,6 +204,7 @@ private:
 	void FireEnd(const FInputActionValue& Value);
 	void Reload(const FInputActionValue& Value);
 	void ThrowGrenade(const FInputActionValue& Value);
+	void ShowReturnToMainMenu(const FInputActionValue& Value);
 	
 	UFUNCTION()
 	void OnRep_MatchState();

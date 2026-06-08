@@ -4,8 +4,12 @@
 #include "HUD/BlasterHUD.h"
 
 #include "Blueprint/UserWidget.h"
+#include "Blueprint/WidgetLayoutLibrary.h"
+#include "Components/CanvasPanelSlot.h"
+#include "Components/HorizontalBox.h"
 #include "HUD/Announcement.h"
 #include "HUD/CharacterOverlay.h"
+#include "HUD/ElimAnnouncement.h"
 
 void ABlasterHUD::DrawHUD()
 {
@@ -77,6 +81,46 @@ void ABlasterHUD::AddAnnouncement()
 	}
 }
 
+void ABlasterHUD::AddElimAnnouncement(FString AttackerName, FString VictimName)
+{
+	OwnerController = OwnerController == nullptr ? GetOwningPlayerController() : OwnerController.Get();
+	if (OwnerController && ElimAnnouncementClass)
+	{
+		UElimAnnouncement* ElimAnnouncementWidget = CreateWidget<UElimAnnouncement>(OwnerController.Get(), ElimAnnouncementClass);
+		if (ElimAnnouncementWidget)
+		{
+			ElimAnnouncementWidget->SetElimAnnouncementText(AttackerName, VictimName);
+			ElimAnnouncementWidget->AddToViewport();
+			
+			for (auto Msg : ElimMessages)
+			{
+				if (Msg && Msg->AnnouncementBox)
+				{
+					UCanvasPanelSlot* CanvasSlot = UWidgetLayoutLibrary::SlotAsCanvasSlot(Msg->AnnouncementBox);
+					if (CanvasSlot)
+					{
+						FVector2D Position = CanvasSlot->GetPosition();
+						FVector2D NewPosition(CanvasSlot->GetPosition().X, Position.Y - CanvasSlot->GetSize().Y);
+						CanvasSlot->SetPosition(NewPosition);
+					}
+				}
+			}
+			
+			ElimMessages.Add(ElimAnnouncementWidget);
+			
+			FTimerHandle ElimMsgTimer;
+			FTimerDelegate ElimMsgTDelegate;
+			
+			ElimMsgTDelegate.BindUFunction(this, FName("ElimAnnouncementTimerFinished"), ElimAnnouncementWidget);
+			GetWorldTimerManager().SetTimer(
+				ElimMsgTimer,
+				ElimMsgTDelegate,
+				ElimAnnouncementTime,
+				false);
+		}
+	}
+}
+
 void ABlasterHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewPortCenter, FVector2D Spread, FLinearColor Color)
 {
 	const float TextureWidth = Texture->GetSizeX();
@@ -96,4 +140,12 @@ void ABlasterHUD::DrawCrosshair(UTexture2D* Texture, FVector2D ViewPortCenter, F
 		1.f, 
 		1.f, 
 		Color);
+}
+
+void ABlasterHUD::ElimAnnouncementTimerFinished(UElimAnnouncement* MsgToRemove)
+{
+	if (MsgToRemove)
+	{
+		MsgToRemove->RemoveFromParent();
+	}
 }

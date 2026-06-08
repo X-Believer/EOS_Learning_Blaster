@@ -9,6 +9,8 @@
 #include "Interfaces/InteractWithCrosshairsInterface.h"
 #include "BlasterCharacter.generated.h"
 
+class UNiagaraComponent;
+class UNiagaraSystem;
 class ULagCompensationComponent;
 class UBoxComponent;
 class UBuffComponent;
@@ -23,6 +25,8 @@ class UWidgetComponent;
 class UCameraComponent;
 class USpringArmComponent;
 class UAnimMontage;
+
+DECLARE_DYNAMIC_MULTICAST_DELEGATE(FOnLeftGame);
 
 UCLASS()
 class BLASTER_API ABlasterCharacter : public ACharacter, public IInteractWithCrosshairsInterface
@@ -66,10 +70,21 @@ public:
 	float CalculateSpeed();
 	
 	UFUNCTION()
-	void Elim();
+	void Elim(bool bPlayerLeftGame);
 	
 	UFUNCTION(NetMulticast, Reliable)
-	void MulticastElim();
+	void MulticastElim(bool bPlayerLeftGame);
+		
+	UFUNCTION(Server, Reliable)
+	void ServerLeaveGame();
+	
+	FOnLeftGame OnLeftGame;
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastGainedTheLead();
+	
+	UFUNCTION(NetMulticast, Reliable)
+	void MulticastLostTheLead();
 	
 	virtual void Destroyed() override;
 	
@@ -259,6 +274,8 @@ private:
 	UPROPERTY(EditDefaultsOnly)
 	float ElimDelay = 3.f;
 	
+	bool bLeftGame = false;
+	
 	/*
 	 * Dissolve Effect
 	 */
@@ -281,7 +298,7 @@ private:
 	void StartDissolve();
 	
 	/*
-	 * Elim bot
+	 * Elim Effect
 	 */
 	UPROPERTY(EditAnywhere, Category="Eliminated")
 	TObjectPtr<UParticleSystem> ElimBotEffect;
@@ -291,6 +308,12 @@ private:
 	
 	UPROPERTY(EditAnywhere, Category="Eliminated")
 	TObjectPtr<USoundCue> ElimBotSound;
+	
+	UPROPERTY(EditAnywhere, Category="Lead")
+	TObjectPtr<UNiagaraSystem> CrownSystem;
+	
+	UPROPERTY(EditAnywhere, Category="Lead")
+	TObjectPtr<UNiagaraComponent> CrownComponent;
 	
 	/*
 	 * Grenade

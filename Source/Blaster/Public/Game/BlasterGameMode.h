@@ -28,6 +28,7 @@ public:
 	virtual void Tick( float DeltaTime ) override;
 	virtual void PlayerEliminated(ABlasterCharacter	*EliminatedCharacter, ABlasterPlayerController *VictimController, ABlasterPlayerController *KillerController);
 	virtual void RequestRespawn(ACharacter* EliminatedCharacter, AController* EliminatedController);
+	virtual float CalculateDamage(AController* AttackerController, AController* VictimController, float BaseDamage);
 	
 	UFUNCTION()
 	void PlayerLeftGame(ABlasterPlayerState* PlayerLeaving);
@@ -43,6 +44,8 @@ public:
 	
 	UPROPERTY()
 	float LevelStartingTime = 0.f;
+	
+	bool bTeamMatch = false;
 	
 protected:
 	virtual void BeginPlay() override;

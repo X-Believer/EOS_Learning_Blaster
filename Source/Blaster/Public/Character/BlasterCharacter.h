@@ -4,11 +4,13 @@
 
 #include "CoreMinimal.h"
 #include "BlasterTypes/CombatState.h"
+#include "BlasterTypes/Team.h"
 #include "Components/TimelineComponent.h"
 #include "GameFramework/Character.h"
 #include "Interfaces/InteractWithCrosshairsInterface.h"
 #include "BlasterCharacter.generated.h"
 
+class ABlasterGameMode;
 class UNiagaraComponent;
 class UNiagaraSystem;
 class ULagCompensationComponent;
@@ -95,6 +97,8 @@ public:
 	TMap<FName, UBoxComponent*> HitCollisionBoxes;
 	
 	bool bFinishSwaping = false;
+	
+	void SetTeamColor(ETeam InTeam);
 
 protected:
 	void AimOffset(float DeltaTime);
@@ -288,7 +292,7 @@ private:
 	UPROPERTY(VisibleAnywhere, Category="Eliminated")
 	TObjectPtr<UMaterialInstanceDynamic> DynamicDissolveMaterialInstance;;
 	
-	UPROPERTY(EditAnywhere, Category="Eliminated")
+	UPROPERTY(VisibleAnywhere, Category="Eliminated")
 	TObjectPtr<UMaterialInstance> DissolveMaterialInstance;
 	
 	UFUNCTION()
@@ -296,6 +300,24 @@ private:
 	
 	UFUNCTION()
 	void StartDissolve();
+	
+	/*
+	 * Team colors
+	 */
+	UPROPERTY(EditAnywhere, Category="Eliminated")
+	TObjectPtr<UMaterialInstance> RedDissolveMaterialInstance;
+	
+	UPROPERTY(EditAnywhere, Category="Eliminated")
+	TObjectPtr<UMaterialInstance> RedMaterial;
+	
+	UPROPERTY(EditAnywhere, Category="Eliminated")
+	TObjectPtr<UMaterialInstance> BlueDissolveMaterialInstance;
+	
+	UPROPERTY(EditAnywhere, Category="Eliminated")
+	TObjectPtr<UMaterialInstance> BlueMaterial;
+	
+	UPROPERTY(EditAnywhere, Category="Eliminated")
+	TObjectPtr<UMaterialInstance> OriginalMaterial;
 	
 	/*
 	 * Elim Effect
@@ -326,6 +348,9 @@ private:
 	 */
 	UPROPERTY(EditAnywhere)
 	TSubclassOf<AWeapon> DefaultWeaponClass;
+	
+	UPROPERTY()
+	TObjectPtr<ABlasterGameMode> BlasterGameMode;
 
 public:
 	void SetOverlappingWeapon(AWeapon* Weapon);

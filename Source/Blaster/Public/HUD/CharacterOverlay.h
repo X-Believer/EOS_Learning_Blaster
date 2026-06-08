@@ -34,6 +34,12 @@ public:
 	UTextBlock* ScoreNum;
 	
 	UPROPERTY(meta = (BindWidget))
+	UTextBlock* RedTeamScore;
+	
+	UPROPERTY(meta = (BindWidget))
+	UTextBlock* BlueTeamScore;
+	
+	UPROPERTY(meta = (BindWidget))
 	UTextBlock* DefeatNum;
 	
 	UPROPERTY(meta = (BindWidget))

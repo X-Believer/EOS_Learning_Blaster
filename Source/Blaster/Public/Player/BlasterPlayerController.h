@@ -6,6 +6,8 @@
 #include "GameFramework/PlayerController.h"
 #include "BlasterPlayerController.generated.h"
 
+class ABlasterGameState;
+class ABlasterPlayerState;
 class UReturnToMainMenu;
 DECLARE_DYNAMIC_MULTICAST_DELEGATE_OneParam(FHighPingDelegate, bool, bHighPing);
 
@@ -39,14 +41,18 @@ public:
 	void SetHUDMatchCountdown(float CountdownTime);
 	void SetHUDAnnouncementCountdown(float CountdownTime);
 	void SetHUDGrenades(int32 Grenades);
+	void HideTeamScores();
+	void InitTeamScores();
+	void SetHUDRedTeamScore(int32 RedScore);
+	void SetHUDBlueTeamScore(int32 BlueScore);
 	
 	// Synced with server world clock
 	virtual float GetServerTime();
 	// Sync with server clock as soon as possible
 	virtual void ReceivedPlayer() override;
 	
-	void OnMatchStateSet(FName State);
-	void HandleMatchHasStarted();
+	void OnMatchStateSet(FName State, bool InTeamMatch = false);
+	void HandleMatchHasStarted(bool InTeamMatch = false);
 	void HandleWaitingToStart();
 	void HandleCooldown();
 	
@@ -63,6 +69,15 @@ protected:
 	virtual void SetHUDTime();
 	void PollInit();
 	float ServerClientDelta = 0.f;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_ShowTeamScores)
+	bool bShowTeamScores = false;
+	
+	UFUNCTION()
+	void OnRep_ShowTeamScores();
+	
+	FString GetInfoText(const TArray<ABlasterPlayerState*>& Players);
+	FString GetTeamsInfoText(const ABlasterGameState* BlasterGameState);
 	
 	UPROPERTY(EditAnywhere, Category = "Time")
 	float TimeSyncFrequency = 5.f;

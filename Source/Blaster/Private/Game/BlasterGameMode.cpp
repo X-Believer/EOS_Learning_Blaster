@@ -67,7 +67,7 @@ void ABlasterGameMode::OnMatchStateSet()
 		ABlasterPlayerController* BlasterPlayerController = Cast<ABlasterPlayerController>(*It);
 		if (BlasterPlayerController)
 		{
-			BlasterPlayerController->OnMatchStateSet(MatchState);
+			BlasterPlayerController->OnMatchStateSet(MatchState, bTeamMatch);
 		}
 	}
 }
@@ -144,6 +144,11 @@ void ABlasterGameMode::RequestRespawn(ACharacter* EliminatedCharacter, AControll
 		const int32 Selection = FMath::RandRange(0, PlayerStarts.Num() - 1);
 		RestartPlayerAtPlayerStart(EliminatedController, PlayerStarts[Selection]);
 	}
+}
+
+float ABlasterGameMode::CalculateDamage(AController* AttackerController, AController* VictimController, float BaseDamage)
+{
+	return BaseDamage;
 }
 
 void ABlasterGameMode::PlayerLeftGame(ABlasterPlayerState* PlayerLeaving)

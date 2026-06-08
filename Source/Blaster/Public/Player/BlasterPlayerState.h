@@ -3,9 +3,11 @@
 #pragma once
 
 #include "CoreMinimal.h"
+#include "BlasterTypes/Team.h"
 #include "GameFramework/PlayerState.h"
 #include "BlasterPlayerState.generated.h"
 
+enum class ETeam : uint8;
 class ABlasterPlayerController;
 class ABlasterCharacter;
 /**
@@ -33,4 +35,14 @@ private:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_DefeatNum)
 	int32 DefeatNum;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_Team)
+	ETeam Team = ETeam::ET_NoTeam;
+	
+	UFUNCTION()
+	void OnRep_Team();
+	
+public:
+	FORCEINLINE ETeam GetTeam() const { return Team; }
+	void SetTeam(ETeam NewTeam);
 };

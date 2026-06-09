@@ -78,6 +78,7 @@ protected:
 	void AttachActorToRightHand(AActor* ActorToAttach);
 	void AttachActorToLeftHand(AActor* ActorToAttach);
 	void AttachActorToBackpack(AActor* ActorToAttach);
+	void AttachFlagToLeftHand(AWeapon* InFlag);
 	void UpdateCarriedAmmo();
 	void PlayEquipWeaponSound(AWeapon* WeaponToEquip);
 	void ReloadEmptyWeapon();
@@ -243,6 +244,15 @@ private:
 	
 	UPROPERTY(ReplicatedUsing=OnRep_CombatState)
 	ECombatState CombatState = ECombatState::ECS_Unoccupied;
+	
+	UPROPERTY()
+	TObjectPtr<AWeapon> FlagHeld;
+	
+	UPROPERTY(ReplicatedUsing=OnRep_bHoldingFlag)
+	bool bHoldingFlag = false;
+	
+	UFUNCTION()
+	void OnRep_bHoldingFlag();
 	
 	UFUNCTION()
 	void OnRep_CombatState();

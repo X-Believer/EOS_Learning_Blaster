@@ -69,6 +69,7 @@ void UCombatComponent::GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& Out
 	DOREPLIFETIME_CONDITION(UCombatComponent, CarriedCurrentWeaponAmmo, COND_OwnerOnly);
 	DOREPLIFETIME(UCombatComponent, CombatState);
 	DOREPLIFETIME(UCombatComponent, CarriedGrenade);
+	DOREPLIFETIME(UCombatComponent, bHoldingFlag);
 }
 
 void UCombatComponent::DropEquippedWeapon()
@@ -103,6 +104,15 @@ void UCombatComponent::AttachActorToBackpack(AActor* ActorToAttach)
 	if (const USkeletalMeshSocket* BackpackSocket = OwnerCharacter->GetMesh()->GetSocketByName(FName("BackpackSocket")))
 	{
 		BackpackSocket->AttachActor(ActorToAttach, OwnerCharacter->GetMesh());
+	}
+}
+
+void UCombatComponent::AttachFlagToLeftHand(AWeapon* InFlag)
+{
+	if (OwnerCharacter == nullptr || OwnerCharacter->GetMesh() == nullptr || InFlag == nullptr) return;
+	if (const USkeletalMeshSocket* LeftHandSocket = OwnerCharacter->GetMesh()->GetSocketByName(FName("FlagSocket")))
+	{
+		LeftHandSocket->AttachActor(InFlag, OwnerCharacter->GetMesh());
 	}
 }
 
@@ -141,17 +151,30 @@ void UCombatComponent::EquipWeapon(AWeapon* InWeapon)
 {
 	if (OwnerCharacter == nullptr || InWeapon == nullptr) return;
 	if (CombatState != ECombatState::ECS_Unoccupied) return;
-	if (EquippedWeapon != nullptr && SecondaryWeapon == nullptr)
+	
+	if (InWeapon->GetWeaponType() == EWeaponType::EWT_Flag)
 	{
-		EquipSecondaryWeapon(InWeapon);
+		OwnerCharacter->Crouch();
+		bHoldingFlag = true;
+		InWeapon->SetWeaponState(EWeaponState::EWS_Equipped);
+		AttachFlagToLeftHand(InWeapon);
+		InWeapon->SetOwner(OwnerCharacter);
+		FlagHeld = InWeapon;
 	}
 	else
 	{
-		EquipPrimaryWeapon(InWeapon);
-	}
+		if (EquippedWeapon != nullptr && SecondaryWeapon == nullptr)
+		{
+			EquipSecondaryWeapon(InWeapon);
+		}
+		else
+		{
+			EquipPrimaryWeapon(InWeapon);
+		}
 	
-	OwnerCharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
-	OwnerCharacter->bUseControllerRotationYaw = true;
+		OwnerCharacter->GetCharacterMovement()->bOrientRotationToMovement = false;
+		OwnerCharacter->bUseControllerRotationYaw = true;
+	}
 }
 
 void UCombatComponent::SwapWeapon()
@@ -384,6 +407,14 @@ void UCombatComponent::ServerReload_Implementation()
 	
 	CombatState = ECombatState::ECS_Reloading;
 	if (!OwnerCharacter->IsLocallyControlled()) HandleReload();
+}
+
+void UCombatComponent::OnRep_bHoldingFlag()
+{
+	if (bHoldingFlag && OwnerCharacter && OwnerCharacter->IsLocallyControlled())
+	{
+		OwnerCharacter->Crouch();
+	}
 }
 
 void UCombatComponent::OnRep_CombatState()

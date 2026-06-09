@@ -7,6 +7,7 @@
 #include "GameFramework/Actor.h"
 #include "Weapon.generated.h"
 
+enum class ETeam : uint8;
 class USoundCue;
 class ABlasterPlayerController;
 class ABlasterCharacter;
@@ -48,7 +49,7 @@ public:
 	virtual void GetLifetimeReplicatedProps(TArray<FLifetimeProperty>& OutLifetimeProps) const override;
 	void SetHUDAmmo();
 	virtual void Fire(const FVector& HitTarget);
-	void Dropped();
+	virtual void Dropped();
 	void AddAmmo(int32 AmmoAmount);
 	FVector TraceEndWithScatter(const FVector& HitTarget) const;
 	
@@ -170,6 +171,9 @@ private:
 	UPROPERTY(EditAnywhere)
 	EWeaponType WeaponType;
 	
+	UPROPERTY(EditAnywhere)
+	ETeam Team;
+	
 	UPROPERTY(EditAnywhere, Category = "Weapon Properties")
 	int32 Ammo;
 	
@@ -201,6 +205,8 @@ public:
 	FORCEINLINE int32 GetMagCapacity() const { return MagCapacity; }
 	FORCEINLINE float GetDamage() const { return Damage; }
 	FORCEINLINE float GetHeadShotDamage() const { return HeadShotDamage; }
+	FORCEINLINE UWidgetComponent* GetPickupWidget() const { return PickupWidget; }
+	FORCEINLINE ETeam GetTeam() const { return Team; }
 	bool AmmoRunOut() const;
 	bool IsAmmoFull() const;
 };

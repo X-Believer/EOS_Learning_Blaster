@@ -28,10 +28,10 @@ public:
 	void RedTeamScores();
 	void BlueTeamScores();
 	
-	UPROPERTY(Replicated)
+	UPROPERTY()
 	TArray<ABlasterPlayerState*> RedTeam;
 	
-	UPROPERTY(Replicated)
+	UPROPERTY()
 	TArray<ABlasterPlayerState*> BlueTeam;
 	
 	UPROPERTY(ReplicatedUsing=OnRep_RedTeamScore)

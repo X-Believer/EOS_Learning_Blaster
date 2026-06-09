@@ -109,6 +109,8 @@ protected:
 	
 	void DropOrDestroyWeapon(AWeapon* InWeapon);
 	void DropOrDestroyWeapons();
+	void SetSpawnPoint();
+	void OnPlayerStateInitialized();
 
 	// Poll for HUD element
 	UFUNCTION()
@@ -378,8 +380,11 @@ public:
 	FORCEINLINE bool GetDisableGameplay() const { return bDisableGameplay; }
 	FORCEINLINE UAnimMontage* GetReloadMontage() const { return ReloadMontage; }
 	FORCEINLINE UStaticMeshComponent* GetAttachedGrenade() const { return AttachedGrenade; }
+	bool IsHoldingFlag();
 	FVector GetHitTargetLocation();
 	AWeapon* GetEquippedWeapon() const;
 	ECombatState GetCombatState() const;
 	bool IsLocallyReloading();
+	ETeam GetTeam();
+	void SetHoldingFlag(bool InHoldingFlag);
 };

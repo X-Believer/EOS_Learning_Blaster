@@ -617,6 +617,7 @@ void ABlasterPlayerController::Crouch(const FInputActionValue& Value)
 {
 	if (OwnerCharacter)
 	{
+		if (OwnerCharacter->IsHoldingFlag()) return;
 		if (OwnerCharacter->bDisableGameplay) return;
 		
 		if (OwnerCharacter->bIsCrouched)
